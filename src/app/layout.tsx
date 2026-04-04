@@ -27,8 +27,17 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      data-theme="dark"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t)}catch(e){}})();`,
+          }}
+        />
+      </head>
       <body
         style={{
           minHeight: "100%",

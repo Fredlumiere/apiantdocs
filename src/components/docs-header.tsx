@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { UserMenu } from "./user-menu";
+import { ThemeToggle } from "./theme-toggle";
 
 interface DocsHeaderProps {
   onOpenSearch: () => void;
@@ -145,6 +146,9 @@ export function DocsHeader({ onOpenSearch }: DocsHeaderProps) {
             &#8984;K
           </kbd>
         </button>
+
+        {/* Theme toggle */}
+        <ThemeToggle />
 
         {/* User menu */}
         <UserMenu />

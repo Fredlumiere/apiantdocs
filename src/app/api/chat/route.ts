@@ -22,7 +22,11 @@ function checkRateLimit(ip: string): { allowed: boolean; retryAfter?: number } {
 }
 
 function sanitizeQuery(input: string): string {
-  return input.replace(/[%_\\(),.*]/g, "").slice(0, 500);
+  return input
+    .replace(/[%_\\;]/g, "")
+    .replace(/[(){}[\]]/g, "")
+    .trim()
+    .slice(0, 500);
 }
 
 // POST /api/chat — RAG chat over documentation

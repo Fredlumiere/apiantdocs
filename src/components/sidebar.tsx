@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { SidebarTree, MobileSidebarToggle } from "@/components/sidebar-tree";
+import { SidebarResize } from "@/components/sidebar-resize";
 import type { TreeNode } from "@/components/sidebar-tree";
 
 async function fetchTree(): Promise<TreeNode[]> {
@@ -24,50 +25,56 @@ export async function Sidebar() {
 
   return (
     <>
-      {/* Desktop sidebar */}
-      <aside
-        className="desktop-sidebar"
-        style={{
-          width: "var(--sidebar-width)",
-          flexShrink: 0,
-          borderRight: "1px solid var(--border-primary)",
-          background: "var(--bg-secondary)",
-          overflowY: "auto",
-          padding: "var(--space-4)",
-          position: "sticky",
-          top: "52px",
-          height: "calc(100vh - 52px)",
-          display: "block",
-        }}
-      >
-        <Link
-          href="/"
+      {/* Sidebar wrapper for resize handle positioning */}
+      <div className="sidebar-wrapper">
+        <aside
+          className="desktop-sidebar"
           style={{
-            fontSize: "14px",
-            fontWeight: 700,
-            color: "var(--text-primary)",
-            textDecoration: "none",
-            display: "block",
-            marginBottom: "var(--space-6)",
+            width: "100%",
+            borderRight: "1px solid var(--border-primary)",
+            background: "var(--bg-secondary)",
+            overflowY: "auto",
+            padding: "var(--space-4)",
+            height: "100%",
           }}
         >
-          APIANT Docs
-        </Link>
-        {tree.length > 0 ? (
-          <SidebarTree tree={tree} />
-        ) : (
-          <p style={{ fontSize: "14px", color: "var(--text-tertiary)" }}>
-            No documents yet.
-          </p>
-        )}
-      </aside>
+          <Link
+            href="/"
+            style={{
+              fontSize: "14px",
+              fontWeight: 700,
+              color: "var(--text-primary)",
+              textDecoration: "none",
+              display: "block",
+              marginBottom: "var(--space-6)",
+            }}
+          >
+            APIANT Docs
+          </Link>
+          {tree.length > 0 ? (
+            <SidebarTree tree={tree} />
+          ) : (
+            <p style={{ fontSize: "14px", color: "var(--text-tertiary)" }}>
+              No documents yet.
+            </p>
+          )}
+        </aside>
+        <SidebarResize />
+      </div>
 
       {/* Mobile hamburger + drawer */}
       <MobileSidebarToggle tree={tree} />
 
       <style>{`
+        .sidebar-wrapper {
+          position: sticky;
+          top: 52px;
+          height: calc(100vh - 52px);
+          width: var(--sidebar-width);
+          flex-shrink: 0;
+        }
         @media (max-width: 767px) {
-          .desktop-sidebar { display: none !important; }
+          .sidebar-wrapper { display: none !important; }
         }
         .desktop-sidebar {
           scrollbar-width: thin;

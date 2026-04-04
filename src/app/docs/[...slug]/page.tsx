@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { createServerClient } from "@/lib/supabase";
 import { MarkdownRenderer } from "@/components/markdown-renderer";
-import { Sidebar } from "@/components/sidebar";
+import { DOC_TYPE_LABELS, PRODUCT_LABELS } from "@/lib/constants";
 import type { Metadata } from "next";
 
 interface Props {
@@ -45,28 +45,25 @@ export default async function DocPage({ params }: Props) {
   if (!doc) notFound();
 
   return (
-    <div className="flex min-h-screen">
-      <Sidebar currentSlug={fullSlug} />
-      <main className="flex-1 max-w-4xl px-8 py-12">
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-4">
-            <span className="text-xs font-mono px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800">
-              {doc.doc_type}
+    <main className="flex-1 max-w-4xl px-8 py-12">
+      <div className="mb-8">
+        <div className="flex items-center gap-3 mb-4">
+          <span className="text-xs font-mono px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800">
+            {DOC_TYPE_LABELS[doc.doc_type] || doc.doc_type}
+          </span>
+          {doc.product && (
+            <span className="text-xs font-mono px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
+              {PRODUCT_LABELS[doc.product] || doc.product}
             </span>
-            {doc.product && (
-              <span className="text-xs font-mono px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
-                {doc.product}
-              </span>
-            )}
-            <span className="text-xs text-zinc-500">v{doc.version}</span>
-          </div>
-          <h1 className="text-3xl font-bold tracking-tight">{doc.title}</h1>
-          {doc.description && (
-            <p className="mt-2 text-lg text-zinc-600 dark:text-zinc-400">{doc.description}</p>
           )}
+          <span className="text-xs text-zinc-500">v{doc.version}</span>
         </div>
-        <MarkdownRenderer content={doc.body} />
-      </main>
-    </div>
+        <h1 className="text-3xl font-bold tracking-tight">{doc.title}</h1>
+        {doc.description && (
+          <p className="mt-2 text-lg text-zinc-600 dark:text-zinc-400">{doc.description}</p>
+        )}
+      </div>
+      <MarkdownRenderer content={doc.body} />
+    </main>
   );
 }

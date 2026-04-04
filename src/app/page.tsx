@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createServerClient } from "@/lib/supabase";
+import { PRODUCTS } from "@/lib/constants";
 
 export const revalidate = 60;
 
@@ -11,12 +12,6 @@ export default async function Home() {
     .eq("status", "published")
     .order("sort_order", { ascending: true })
     .limit(20);
-
-  const products = [
-    { key: "platform", label: "Platform", description: "Core integration platform docs" },
-    { key: "api-apps", label: "API Apps", description: "Build and use API Apps" },
-    { key: "mcp", label: "MCP", description: "Model Context Protocol integration" },
-  ];
 
   return (
     <div className="flex flex-col min-h-full">
@@ -39,7 +34,7 @@ export default async function Home() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
-          {products.map((p) => (
+          {PRODUCTS.map((p) => (
             <Link
               key={p.key}
               href={`/docs?product=${p.key}`}

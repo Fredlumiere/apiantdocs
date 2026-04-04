@@ -48,8 +48,9 @@ export async function validateApiKey(
 export async function requireWriteAccess(
   request: NextRequest
 ): Promise<{ authorized: boolean; error?: string }> {
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const authHeader = request.headers.get("authorization");
-  if (authHeader === `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY}`) {
+  if (serviceRoleKey && authHeader === `Bearer ${serviceRoleKey}`) {
     return { authorized: true };
   }
 

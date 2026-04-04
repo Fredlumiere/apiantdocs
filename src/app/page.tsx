@@ -1,64 +1,85 @@
-import Image from "next/image";
+import Link from "next/link";
+import { createServerClient } from "@/lib/supabase";
 
-export default function Home() {
+export const revalidate = 60;
+
+export default async function Home() {
+  const supabase = createServerClient();
+  const { data: docs } = await supabase
+    .from("documents")
+    .select("slug, title, description, doc_type, product")
+    .eq("status", "published")
+    .order("sort_order", { ascending: true })
+    .limit(20);
+
+  const products = [
+    { key: "platform", label: "Platform", description: "Core integration platform docs" },
+    { key: "api-apps", label: "API Apps", description: "Build and use API Apps" },
+    { key: "mcp", label: "MCP", description: "Model Context Protocol integration" },
+  ];
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
+    <div className="flex flex-col min-h-full">
+      <header className="border-b border-zinc-200 dark:border-zinc-800">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+          <Link href="/" className="text-xl font-bold">APIANT Docs</Link>
+          <nav className="flex items-center gap-6 text-sm">
+            <Link href="/docs" className="hover:text-zinc-600 dark:hover:text-zinc-300">All Docs</Link>
+            <Link href="/api/docs" className="hover:text-zinc-600 dark:hover:text-zinc-300">API</Link>
+          </nav>
+        </div>
+      </header>
+
+      <main className="flex-1 max-w-7xl mx-auto px-6 py-16 w-full">
+        <div className="max-w-2xl mb-16">
+          <h1 className="text-4xl font-bold tracking-tight mb-4">APIANT Documentation</h1>
+          <p className="text-lg text-zinc-600 dark:text-zinc-400">
+            The AI-first integration platform. Build automations, connect APIs, and deploy integrations at scale.
           </p>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
+          {products.map((p) => (
+            <Link
+              key={p.key}
+              href={`/docs?product=${p.key}`}
+              className="block p-6 rounded-lg border border-zinc-200 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-600 transition-colors"
+            >
+              <h2 className="text-lg font-semibold mb-2">{p.label}</h2>
+              <p className="text-sm text-zinc-600 dark:text-zinc-400">{p.description}</p>
+            </Link>
+          ))}
         </div>
+
+        {docs && docs.length > 0 && (
+          <div>
+            <h2 className="text-2xl font-semibold mb-6">Recent Documentation</h2>
+            <div className="space-y-3">
+              {docs.map((doc) => (
+                <Link
+                  key={doc.slug}
+                  href={`/docs/${doc.slug}`}
+                  className="block p-4 rounded-lg border border-zinc-200 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-600 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs font-mono px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800">
+                      {doc.doc_type}
+                    </span>
+                    {doc.product && (
+                      <span className="text-xs font-mono px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
+                        {doc.product}
+                      </span>
+                    )}
+                  </div>
+                  <h3 className="font-medium mt-2">{doc.title}</h3>
+                  {doc.description && (
+                    <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">{doc.description}</p>
+                  )}
+                </Link>
+              ))}
+            </div>
+          </div>
+        )}
       </main>
     </div>
   );

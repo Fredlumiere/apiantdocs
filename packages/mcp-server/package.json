@@ -1,0 +1,21 @@
+{
+  "name": "@apiant/docs-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for APIANT documentation — read, write, search, and chat with docs",
+  "main": "dist/index.js",
+  "bin": {
+    "apiant-docs-mcp": "dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.0",
+    "@tailwindcss/typography": "^0.5.19"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0"
+  }
+}

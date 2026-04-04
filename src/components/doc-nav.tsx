@@ -16,72 +16,75 @@ export function DocNav({ prev, next }: DocNavProps) {
   return (
     <nav
       aria-label="Previous and next documents"
-      style={{
-        display: "flex",
-        justifyContent: "space-between",
-        gap: "var(--space-4)",
-        marginTop: "var(--space-12)",
-        paddingTop: "var(--space-6)",
-        borderTop: "1px solid var(--border-primary)",
-      }}
+      className="doc-nav-container"
     >
       {prev ? (
-        <Link href={`/docs/${prev.slug}`} className="doc-nav-link">
-          <span style={{ fontSize: "12px", color: "var(--text-tertiary)" }}>
-            &#8592; Previous
-          </span>
-          <span style={{
-            fontSize: "14px",
-            fontWeight: 500,
-            color: "var(--accent-primary)",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-          }}>
-            {prev.title}
-          </span>
+        <Link href={`/docs/${prev.slug}`} className="doc-nav-link doc-nav-prev">
+          <span className="doc-nav-label">&#8592; Previous</span>
+          <span className="doc-nav-title">{prev.title}</span>
         </Link>
       ) : (
-        <div />
+        <div className="doc-nav-spacer" />
       )}
 
       {next ? (
-        <Link href={`/docs/${next.slug}`} className="doc-nav-link" style={{ alignItems: "flex-end" }}>
-          <span style={{ fontSize: "12px", color: "var(--text-tertiary)" }}>
-            Next &#8594;
-          </span>
-          <span style={{
-            fontSize: "14px",
-            fontWeight: 500,
-            color: "var(--accent-primary)",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            whiteSpace: "nowrap",
-          }}>
-            {next.title}
-          </span>
+        <Link href={`/docs/${next.slug}`} className="doc-nav-link doc-nav-next">
+          <span className="doc-nav-label">Next &#8594;</span>
+          <span className="doc-nav-title">{next.title}</span>
         </Link>
       ) : (
-        <div />
+        <div className="doc-nav-spacer" />
       )}
 
       <style>{`
+        .doc-nav-container {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: var(--space-4);
+          margin-top: var(--space-12);
+          padding-top: var(--space-6);
+          border-top: 1px solid var(--border-primary);
+        }
+        @media (max-width: 560px) {
+          .doc-nav-container {
+            grid-template-columns: 1fr;
+          }
+        }
         .doc-nav-link {
           display: flex;
           flex-direction: column;
-          gap: 4px;
+          gap: 6px;
           padding: var(--space-3) var(--space-4);
           border-radius: var(--radius-md);
           border: 1px solid var(--border-primary);
           text-decoration: none;
           color: inherit;
-          flex: 1;
-          max-width: 50%;
           transition: border-color 0.15s, background 0.15s;
+          min-width: 0;
         }
         .doc-nav-link:hover {
           border-color: var(--border-hover);
           background: var(--bg-surface);
+        }
+        .doc-nav-next {
+          text-align: right;
+        }
+        .doc-nav-label {
+          font-size: 12px;
+          color: var(--text-tertiary);
+        }
+        .doc-nav-title {
+          font-size: 14px;
+          font-weight: 500;
+          color: var(--accent-primary);
+          display: -webkit-box;
+          -webkit-line-clamp: 2;
+          -webkit-box-orient: vertical;
+          overflow: hidden;
+          line-height: 1.4;
+        }
+        .doc-nav-spacer {
+          display: none;
         }
       `}</style>
     </nav>

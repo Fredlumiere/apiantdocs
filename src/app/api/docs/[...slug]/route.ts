@@ -1,19 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase";
 import { requireWriteAccess } from "@/lib/api-auth";
+import { embedDocument } from "@/lib/embeddings";
 
-// GET /api/docs/[slug] — get a single document
+function extractSlug(slugParts: string[]): { slug: string; action: string | null } {
+  // If last segment is "embed", treat it as an action
+  if (slugParts[slugParts.length - 1] === "embed") {
+    return { slug: slugParts.slice(0, -1).join("/"), action: "embed" };
+  }
+  return { slug: slugParts.join("/"), action: null };
+}
+
+// GET /api/docs/[...slug] — get a single document
 export async function GET(
   _request: NextRequest,
-  { params }: { params: Promise<{ slug: string }> }
+  { params }: { params: Promise<{ slug: string[] }> }
 ) {
-  const { slug } = await params;
+  const { slug: slugParts } = await params;
+  const { slug } = extractSlug(slugParts);
   const supabase = createServerClient();
 
   const { data, error } = await supabase
     .from("documents")
     .select("*")
     .eq("slug", slug)
+    .eq("status", "published")
     .single();
 
   if (error || !data) {
@@ -23,17 +34,54 @@ export async function GET(
   return NextResponse.json({ data });
 }
 
-// PATCH /api/docs/[slug] — update a document (requires write access)
+// POST /api/docs/[...slug] — either embed or other actions
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ slug: string[] }> }
+) {
+  const { slug: slugParts } = await params;
+  const { slug, action } = extractSlug(slugParts);
+
+  if (action === "embed") {
+    const auth = await requireWriteAccess(request);
+    if (!auth.authorized) {
+      return NextResponse.json({ error: auth.error }, { status: 401 });
+    }
+
+    const supabase = createServerClient();
+    const { data: doc } = await supabase
+      .from("documents")
+      .select("id")
+      .eq("slug", slug)
+      .single();
+
+    if (!doc) {
+      return NextResponse.json({ error: "Document not found" }, { status: 404 });
+    }
+
+    const result = await embedDocument(doc.id);
+    return NextResponse.json({
+      success: true,
+      document_id: doc.id,
+      chunks: result.chunks,
+    });
+  }
+
+  return NextResponse.json({ error: "Unknown action" }, { status: 400 });
+}
+
+// PATCH /api/docs/[...slug] — update a document (requires write access)
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ slug: string }> }
+  { params }: { params: Promise<{ slug: string[] }> }
 ) {
   const auth = await requireWriteAccess(request);
   if (!auth.authorized) {
     return NextResponse.json({ error: auth.error }, { status: 401 });
   }
 
-  const { slug } = await params;
+  const { slug: slugParts } = await params;
+  const { slug } = extractSlug(slugParts);
   const body = await request.json();
   const supabase = createServerClient();
 
@@ -92,17 +140,18 @@ export async function PATCH(
   return NextResponse.json({ data });
 }
 
-// DELETE /api/docs/[slug] — delete a document (requires write access)
+// DELETE /api/docs/[...slug] — delete a document (requires write access)
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ slug: string }> }
+  { params }: { params: Promise<{ slug: string[] }> }
 ) {
   const auth = await requireWriteAccess(request);
   if (!auth.authorized) {
     return NextResponse.json({ error: auth.error }, { status: 401 });
   }
 
-  const { slug } = await params;
+  const { slug: slugParts } = await params;
+  const { slug } = extractSlug(slugParts);
   const supabase = createServerClient();
 
   const { error } = await supabase

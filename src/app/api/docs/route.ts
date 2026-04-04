@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
 
   let query = supabase
     .from("documents")
-    .select("id, slug, title, description, doc_type, product, parent_id, sort_order, status, version, created_at, updated_at, published_at")
+    .select("id, slug, title, description, doc_type, product, parent_id, sort_order, status, version, created_at, updated_at, published_at", { count: "exact" })
     .eq("status", status)
     .order("sort_order", { ascending: true })
     .range(offset, offset + limit - 1);
@@ -23,13 +23,23 @@ export async function GET(request: NextRequest) {
   if (doc_type) query = query.eq("doc_type", doc_type);
   if (product) query = query.eq("product", product);
 
-  const { data, error } = await query;
+  const { data, error, count: total } = await query;
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ data, count: data?.length || 0 });
+  const totalCount = total || 0;
+  return NextResponse.json({
+    data,
+    count: totalCount,
+    meta: {
+      total: totalCount,
+      limit,
+      offset,
+      has_more: offset + limit < totalCount,
+    },
+  });
 }
 
 // POST /api/docs — create a document (requires write access)

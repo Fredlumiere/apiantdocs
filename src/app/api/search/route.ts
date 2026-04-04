@@ -1,12 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase";
 
-// Sanitize input for PostgREST filter strings
 function sanitizeQuery(input: string): string {
-  return input.replace(/[%_\\(),.*]/g, "");
+  return input.replace(/[%_\\(),.*]/g, "").slice(0, 200);
 }
 
-// GET /api/search?q=query — full-text search
+// GET /api/search?q=query&product=&limit=&mode=keyword|semantic|hybrid
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const q = searchParams.get("q");
@@ -20,36 +19,28 @@ export async function GET(request: NextRequest) {
   const supabase = createServerClient();
   const sanitized = sanitizeQuery(q.trim());
 
-  // Full-text search on published documents using websearch
-  let query = supabase
-    .from("documents")
-    .select("id, slug, title, description, doc_type, product")
-    .eq("status", "published")
-    .textSearch("title", sanitized, { type: "websearch" })
-    .limit(limit);
+  // Use the search_documents RPC for full-text search with ranking + snippets
+  const { data, error } = await supabase.rpc("search_documents", {
+    search_query: sanitized,
+    filter_product: product || null,
+    result_limit: limit,
+  });
 
-  if (product) query = query.eq("product", sanitizeQuery(product));
-
-  const { data, error } = await query;
-
-  if (error || !data || data.length === 0) {
-    // Fallback: use sanitized ilike on title + description only
+  if (error) {
+    // Fallback to simple ilike if RPC fails (e.g., invalid websearch syntax)
     const safeQ = sanitized.replace(/'/g, "''");
-    let fallback = supabase
+    const { data: fallbackData } = await supabase
       .from("documents")
       .select("id, slug, title, description, doc_type, product")
       .eq("status", "published")
       .or(`title.ilike.%${safeQ}%,description.ilike.%${safeQ}%`)
       .limit(limit);
 
-    if (product) fallback = fallback.eq("product", sanitizeQuery(product));
-
-    const { data: fallbackData, error: fallbackError } = await fallback;
-    if (fallbackError) {
-      return NextResponse.json({ error: "Search failed" }, { status: 500 });
-    }
-    return NextResponse.json({ data: fallbackData || [], count: fallbackData?.length || 0 });
+    return NextResponse.json({
+      data: (fallbackData || []).map((d) => ({ ...d, snippet: null, rank: 0 })),
+      count: fallbackData?.length || 0,
+    });
   }
 
-  return NextResponse.json({ data, count: data?.length || 0 });
+  return NextResponse.json({ data: data || [], count: data?.length || 0 });
 }

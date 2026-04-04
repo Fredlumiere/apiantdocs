@@ -1,8 +1,12 @@
-import Anthropic from "@anthropic-ai/sdk";
 import { createServerClient } from "./supabase";
 
-const CHUNK_SIZE = 1000; // characters per chunk
+const CHUNK_SIZE = 1000;
 const CHUNK_OVERLAP = 200;
+
+// Warn at module load if Voyage API key is missing
+if (!process.env.VOYAGE_API_KEY) {
+  console.warn("[apiantdocs] VOYAGE_API_KEY not set — embedding operations will fail. Semantic search will not work.");
+}
 
 /**
  * Split text into overlapping chunks for embedding.
@@ -21,44 +25,49 @@ export function chunkText(text: string): string[] {
 }
 
 /**
- * Generate embeddings for text chunks using Anthropic's Voyage API.
- * Falls back to a simple hash-based vector if VOYAGE_API_KEY is not set.
+ * Generate embeddings via Voyage API.
+ * Throws if VOYAGE_API_KEY is not set (never inserts random vectors).
  */
 export async function generateEmbeddings(
   texts: string[]
 ): Promise<number[][]> {
   const voyageKey = process.env.VOYAGE_API_KEY;
 
-  if (voyageKey) {
-    // Use Voyage API for production embeddings
-    const response = await fetch("https://api.voyageai.com/v1/embeddings", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${voyageKey}`,
-      },
-      body: JSON.stringify({
-        input: texts,
-        model: "voyage-3",
-      }),
-    });
-
-    const data = await response.json();
-    return data.data.map((d: { embedding: number[] }) => d.embedding);
+  if (!voyageKey) {
+    throw new Error("VOYAGE_API_KEY is not configured. Cannot generate embeddings.");
   }
 
-  // Fallback: use Anthropic to generate a summary, then a deterministic vector
-  // This is a placeholder — replace with Voyage or another embedding model
-  return texts.map(() => Array.from({ length: 1024 }, () => Math.random() * 2 - 1));
+  const response = await fetch("https://api.voyageai.com/v1/embeddings", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${voyageKey}`,
+    },
+    body: JSON.stringify({
+      input: texts,
+      model: "voyage-3",
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Voyage API error: ${response.status} ${response.statusText}`);
+  }
+
+  const data = await response.json();
+  if (!data.data || !Array.isArray(data.data)) {
+    throw new Error("Unexpected Voyage API response shape");
+  }
+
+  return data.data.map((d: { embedding: number[] }) => d.embedding);
 }
 
 /**
  * Embed a document: chunk its body, generate embeddings, store in doc_embeddings.
+ * Atomic: generates new embeddings first, then replaces old ones.
  */
 export async function embedDocument(documentId: string) {
   const supabase = createServerClient();
 
-  // Fetch the document
   const { data: doc } = await supabase
     .from("documents")
     .select("id, title, body")
@@ -66,21 +75,21 @@ export async function embedDocument(documentId: string) {
     .single();
 
   if (!doc) throw new Error(`Document ${documentId} not found`);
-
-  // Delete existing embeddings for this document
-  await supabase
-    .from("doc_embeddings")
-    .delete()
-    .eq("document_id", documentId);
+  if (!doc.body) throw new Error(`Document ${documentId} has no body content`);
 
   // Chunk the content (prepend title for context)
   const fullText = `# ${doc.title}\n\n${doc.body}`;
   const chunks = chunkText(fullText);
 
-  // Generate embeddings
+  // Generate embeddings FIRST (before deleting old ones)
   const embeddings = await generateEmbeddings(chunks);
 
-  // Store chunks and embeddings
+  // Now safe to delete old embeddings and insert new ones
+  await supabase
+    .from("doc_embeddings")
+    .delete()
+    .eq("document_id", documentId);
+
   const rows = chunks.map((content, i) => ({
     document_id: documentId,
     chunk_index: i,
@@ -104,16 +113,18 @@ export async function semanticSearch(
 ): Promise<{ content: string; document_id: string; slug: string; title: string }[]> {
   const supabase = createServerClient();
 
-  // Generate embedding for the query
-  const [queryEmbedding] = await generateEmbeddings([query]);
+  try {
+    const [queryEmbedding] = await generateEmbeddings([query]);
 
-  // Use Supabase RPC for vector similarity search
-  // We need a function for this — fall back to full-text for now
-  const { data } = await supabase.rpc("match_doc_embeddings", {
-    query_embedding: JSON.stringify(queryEmbedding),
-    match_count: limit,
-    filter_product: product || null,
-  });
+    const { data } = await supabase.rpc("match_doc_embeddings", {
+      query_embedding: JSON.stringify(queryEmbedding),
+      match_count: limit,
+      filter_product: product || null,
+    });
 
-  return data || [];
+    return data || [];
+  } catch (err) {
+    console.error("[apiantdocs] Semantic search failed:", err);
+    return [];
+  }
 }

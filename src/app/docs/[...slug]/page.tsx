@@ -5,6 +5,7 @@ import { Breadcrumbs } from "@/components/breadcrumbs";
 import { TableOfContents } from "@/components/table-of-contents";
 import { extractHeadings } from "@/lib/extract-headings";
 import { DocNav } from "@/components/doc-nav";
+import { ChildCards } from "@/components/child-cards";
 import { DOC_TYPE_LABELS, PRODUCT_LABELS } from "@/lib/constants";
 import type { Metadata } from "next";
 
@@ -84,8 +85,24 @@ export default async function DocPage({ params }: Props) {
     }
   }
 
+  // Fetch child documents
+  const { data: childDocs } = await supabase
+    .from("documents")
+    .select("slug, title, description, doc_type")
+    .eq("parent_id", doc.id)
+    .eq("status", "published")
+    .order("sort_order", { ascending: true });
+
+  // Clean body: strip Archbee JSX tags that don't render in Markdown
+  const cleanBody = (doc.body || "")
+    .replace(/<LinkArray[\s\S]*?<\/LinkArray>/gi, "")
+    .replace(/<LinkArrayItem[\s\S]*?\/>/gi, "")
+    .replace(/<Image[\s\S]*?(?:\/>|<\/Image>)/gi, "")
+    .replace(/<Callout[\s\S]*?<\/Callout>/gi, "")
+    .trim();
+
   // Extract headings server-side for TOC
-  const headings = extractHeadings(doc.body || "");
+  const headings = extractHeadings(cleanBody);
 
   // Format last updated
   const updatedAt = doc.updated_at
@@ -170,7 +187,12 @@ export default async function DocPage({ params }: Props) {
             </p>
           )}
         </div>
-        <MarkdownRenderer content={doc.body} />
+        {cleanBody && <MarkdownRenderer content={cleanBody} />}
+
+        {/* Child document cards */}
+        {childDocs && childDocs.length > 0 && (
+          <ChildCards children={childDocs} />
+        )}
 
         {/* Prev/Next navigation */}
         <DocNav prev={prevDoc} next={nextDoc} />

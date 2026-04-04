@@ -1126,7 +1126,7 @@ node scripts/dist/fix-images.js
 - **`zod` not in MCP server dependencies:** It's used in the server code but not listed in package.json (likely a peer dependency of `@modelcontextprotocol/sdk`).
 
 ### Known Issues
-1. **Image MIME failures:** Some images from Archbee return `application/octet-stream`. The migration script handles this with magic byte detection, but some images may still have failed. The `fix-images.ts` script exists as a remediation pass.
+1. ~~**Image MIME failures:**~~ Fixed — `fix-images.ts` re-downloaded 969 images with magic byte MIME detection. `fix-image-tags.ts` then converted 787 JSX `<Image>` tags to standard Markdown `![](url)` and re-hosted the last 3 Archbee URLs. All images now in Supabase Storage.
 2. **Random vector fallback:** Without `VOYAGE_API_KEY`, embeddings are random noise — semantic search will return garbage results. No warning is surfaced to the user.
 3. **Search is title-only:** `/api/search` uses `textSearch("title", q)`. The full-text GIN index covers title + description + body, but the search API only queries title. The fallback ilike also only checks title + description.
 4. **Chat search is naive:** RAG chat uses `ilike` across title + body, which is slow on large datasets and doesn't leverage the full-text index or semantic search.

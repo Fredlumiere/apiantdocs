@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ChatPanel } from "@/components/chat-panel";
+import { AuthProvider } from "@/components/auth-provider";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -37,8 +38,10 @@ export default function RootLayout({
           color: "var(--text-primary)",
         }}
       >
-        {children}
-        <ChatPanel />
+        <AuthProvider>
+          {children}
+          <ChatPanel />
+        </AuthProvider>
       </body>
     </html>
   );

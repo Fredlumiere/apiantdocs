@@ -33,6 +33,7 @@ export interface ApiKey {
   key_hash: string;
   key_prefix: string;
   permissions: string[];
+  user_id: string | null;
   created_at: string;
   last_used_at: string | null;
 }

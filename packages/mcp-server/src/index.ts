@@ -5,12 +5,25 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 
 const API_BASE = process.env.APIANTDOCS_API_URL || "https://apiantdocs.vercel.app";
-const API_KEY = process.env.APIANTDOCS_API_KEY || "";
+
+// Auth state — supports API key or session token
+let authApiKey = process.env.APIANTDOCS_API_KEY || "";
+let authSessionToken = "";
+
+function getAuthHeaders(): Record<string, string> {
+  if (authApiKey) {
+    return { Authorization: `Bearer ${authApiKey}` };
+  }
+  if (authSessionToken) {
+    return { Authorization: `Bearer ${authSessionToken}` };
+  }
+  return {};
+}
 
 async function apiFetch(path: string, options: RequestInit = {}) {
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
-    ...(API_KEY ? { Authorization: `Bearer ${API_KEY}` } : {}),
+    ...getAuthHeaders(),
     "X-Changed-By": "mcp:claude-code",
     ...(options.headers as Record<string, string> || {}),
   };
@@ -27,6 +40,101 @@ const server = new McpServer({
   name: "apiant-docs",
   version: "0.1.0",
 });
+
+// docs_login — authenticate with email + password
+server.tool(
+  "docs_login",
+  "Authenticate with APIANT docs using email and password. Stores session token for subsequent calls.",
+  {
+    email: z.string().describe("Your email address"),
+    password: z.string().describe("Your password"),
+  },
+  async ({ email, password }) => {
+    try {
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || API_BASE.replace("apiantdocs.vercel.app", "supabase.co");
+
+      // Use Supabase auth REST API directly
+      const response = await fetch(
+        `${supabaseUrl}/auth/v1/token?grant_type=password`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            apikey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "",
+          },
+          body: JSON.stringify({ email, password }),
+        }
+      );
+
+      const data = await response.json();
+
+      if (!response.ok || !data.access_token) {
+        return {
+          content: [
+            {
+              type: "text" as const,
+              text: `Login failed: ${data.error_description || data.msg || "Unknown error"}`,
+            },
+          ],
+        };
+      }
+
+      authSessionToken = data.access_token;
+      authApiKey = ""; // Clear API key in favor of session
+
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `Logged in as ${email}. Session token stored for subsequent calls.`,
+          },
+        ],
+      };
+    } catch (err) {
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: `Login error: ${err instanceof Error ? err.message : "Unknown error"}`,
+          },
+        ],
+      };
+    }
+  }
+);
+
+// docs_api_key — set an API key for subsequent calls
+server.tool(
+  "docs_api_key",
+  "Set an API key for authenticating with APIANT docs. Use this instead of login for programmatic access.",
+  {
+    api_key: z.string().describe("API key starting with 'ak_'"),
+  },
+  async ({ api_key }) => {
+    if (!api_key.startsWith("ak_")) {
+      return {
+        content: [
+          {
+            type: "text" as const,
+            text: "Invalid API key format. Keys should start with 'ak_'.",
+          },
+        ],
+      };
+    }
+
+    authApiKey = api_key;
+    authSessionToken = ""; // Clear session in favor of API key
+
+    return {
+      content: [
+        {
+          type: "text" as const,
+          text: `API key set (prefix: ${api_key.slice(0, 11)}...). Will be used for subsequent calls.`,
+        },
+      ],
+    };
+  }
+);
 
 // docs_list — list documents with optional filters
 server.tool(

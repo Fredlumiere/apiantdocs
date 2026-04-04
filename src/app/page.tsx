@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createServerClient } from "@/lib/supabase";
 import { PRODUCTS } from "@/lib/constants";
 import { HomeSearchHero } from "@/components/home-search-hero";
+import { UserMenu } from "@/components/user-menu";
 
 export const revalidate = 60;
 
@@ -69,6 +70,7 @@ export default async function Home() {
             <Link href="/api/docs" className="home-nav-link">
               API Reference
             </Link>
+            <UserMenu />
           </nav>
         </div>
         <style>{`

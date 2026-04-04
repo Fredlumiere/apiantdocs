@@ -1,5 +1,6 @@
 import { createServerClient } from "./supabase";
 import { NextRequest } from "next/server";
+import { createServerClient as createSSRServerClient } from "@supabase/ssr";
 
 /**
  * Validates an API key from the Authorization header.
@@ -43,22 +44,84 @@ export async function validateApiKey(
 }
 
 /**
+ * Validates a Supabase session from cookies.
+ * Returns the user ID if valid, null if not authenticated.
+ */
+export async function validateSession(
+  request: NextRequest
+): Promise<{ userId: string; permissions: string[] } | null> {
+  // Check if middleware passed the user ID
+  const userId = request.headers.get("x-supabase-user");
+  if (userId) {
+    // Authenticated users get write + read permissions by default
+    return { userId, permissions: ["read", "write"] };
+  }
+
+  // Fallback: try reading session from cookies directly
+  try {
+    const supabase = createSSRServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll();
+          },
+          setAll() {
+            // Can't set cookies in API route handler from here
+          },
+        },
+      }
+    );
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (user) {
+      return { userId: user.id, permissions: ["read", "write"] };
+    }
+  } catch {
+    // Session validation failed — not authenticated
+  }
+
+  return null;
+}
+
+/**
  * Checks if a request has write permission.
+ * Supports: service role key, API key, or Supabase session.
  */
 export async function requireWriteAccess(
   request: NextRequest
 ): Promise<{ authorized: boolean; error?: string }> {
+  // 1. Service role key (admin)
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const authHeader = request.headers.get("authorization");
   if (serviceRoleKey && authHeader === `Bearer ${serviceRoleKey}`) {
     return { authorized: true };
   }
 
+  // 2. API key
   const permissions = await validateApiKey(request);
-  if (!permissions) return { authorized: false, error: "Invalid API key" };
-  if (!permissions.includes("write") && !permissions.includes("admin")) {
+  if (permissions) {
+    if (!permissions.includes("write") && !permissions.includes("admin")) {
+      return { authorized: false, error: "Insufficient permissions" };
+    }
+    return { authorized: true };
+  }
+
+  // 3. Supabase session (cookie-based)
+  const session = await validateSession(request);
+  if (session) {
+    if (
+      session.permissions.includes("write") ||
+      session.permissions.includes("admin")
+    ) {
+      return { authorized: true };
+    }
     return { authorized: false, error: "Insufficient permissions" };
   }
 
-  return { authorized: true };
+  return { authorized: false, error: "Authentication required" };
 }

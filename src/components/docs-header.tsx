@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
+import { UserMenu } from "./user-menu";
 
 interface DocsHeaderProps {
   onOpenSearch: () => void;
@@ -101,7 +102,7 @@ export function DocsHeader({ onOpenSearch }: DocsHeaderProps) {
         </nav>
       </div>
 
-      {/* Right: Search trigger + mobile hamburger */}
+      {/* Right: Search trigger + user menu + mobile hamburger */}
       <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)" }}>
         {/* Search trigger */}
         <button
@@ -144,6 +145,9 @@ export function DocsHeader({ onOpenSearch }: DocsHeaderProps) {
             &#8984;K
           </kbd>
         </button>
+
+        {/* User menu */}
+        <UserMenu />
 
         {/* Mobile hamburger */}
         <button

@@ -69,6 +69,29 @@ export async function Sidebar() {
         @media (max-width: 767px) {
           .desktop-sidebar { display: none !important; }
         }
+        .desktop-sidebar {
+          scrollbar-width: thin;
+          scrollbar-color: transparent transparent;
+        }
+        .desktop-sidebar:hover {
+          scrollbar-color: var(--border-secondary) transparent;
+        }
+        .desktop-sidebar::-webkit-scrollbar {
+          width: 6px;
+        }
+        .desktop-sidebar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .desktop-sidebar::-webkit-scrollbar-thumb {
+          background: transparent;
+          border-radius: 3px;
+        }
+        .desktop-sidebar:hover::-webkit-scrollbar-thumb {
+          background: var(--border-secondary);
+        }
+        .desktop-sidebar::-webkit-scrollbar-thumb:hover {
+          background: var(--border-hover);
+        }
       `}</style>
     </>
   );

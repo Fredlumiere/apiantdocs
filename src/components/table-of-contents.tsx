@@ -113,6 +113,26 @@ export function TableOfContents({ headings }: TableOfContentsProps) {
         @media (min-width: 1280px) {
           .toc-aside { display: block !important; }
         }
+        .toc-aside {
+          scrollbar-width: thin;
+          scrollbar-color: transparent transparent;
+        }
+        .toc-aside:hover {
+          scrollbar-color: var(--border-secondary) transparent;
+        }
+        .toc-aside::-webkit-scrollbar {
+          width: 4px;
+        }
+        .toc-aside::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .toc-aside::-webkit-scrollbar-thumb {
+          background: transparent;
+          border-radius: 2px;
+        }
+        .toc-aside:hover::-webkit-scrollbar-thumb {
+          background: var(--border-secondary);
+        }
       `}</style>
     </aside>
   );

@@ -51,10 +51,38 @@ export function MarkdownRenderer({ content }: { content: string }) {
         ]}
         components={{
           pre: PreBlock,
+          img: ({ src, alt, ...props }) => (
+            <span className="doc-image-frame">
+              <img src={src} alt={alt || ""} loading="lazy" {...props} />
+            </span>
+          ),
         }}
       >
         {content}
       </ReactMarkdown>
+      <style>{`
+        .doc-image-frame {
+          display: block;
+          margin: var(--space-6) 0;
+          padding: 3px;
+          border-radius: var(--radius-lg);
+          background: linear-gradient(
+            135deg,
+            var(--accent-primary) 0%,
+            rgba(26, 183, 89, 0.3) 50%,
+            var(--accent-primary) 100%
+          );
+          width: fit-content;
+          max-width: 100%;
+        }
+        .doc-image-frame img {
+          display: block;
+          border-radius: calc(var(--radius-lg) - 2px);
+          background: var(--bg-secondary);
+          max-width: 100%;
+          height: auto;
+        }
+      `}</style>
     </div>
   );
 }

@@ -51,17 +51,22 @@ export function DocsHeader({ onOpenSearch }: DocsHeaderProps) {
           <img
             src="/apiant-logo.svg"
             alt="APIANT"
-            style={{ height: "20px", width: "auto" }}
+            style={{ height: "23px", width: "auto" }}
           />
           <span
             style={{
-              fontSize: "14px",
-              fontWeight: 500,
-              color: "var(--text-tertiary)",
-              marginLeft: "4px",
+              fontSize: "11px",
+              fontWeight: 600,
+              letterSpacing: "0.08em",
+              textTransform: "uppercase" as const,
+              color: "var(--accent-primary)",
+              background: "var(--accent-primary-subtle)",
+              padding: "2px 6px",
+              borderRadius: "4px",
+              marginLeft: "6px",
             }}
           >
-            Docs
+            docs
           </span>
         </Link>
 

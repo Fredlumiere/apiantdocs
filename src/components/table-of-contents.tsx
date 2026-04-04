@@ -1,12 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-
-export interface TocHeading {
-  id: string;
-  text: string;
-  level: 2 | 3;
-}
+import type { TocHeading } from "@/lib/extract-headings";
 
 interface TableOfContentsProps {
   headings: TocHeading[];
@@ -123,28 +118,5 @@ export function TableOfContents({ headings }: TableOfContentsProps) {
   );
 }
 
-/** Extract headings from markdown — run server-side, pass result as props */
-export function extractHeadings(markdown: string): TocHeading[] {
-  const headings: TocHeading[] = [];
-  const lines = markdown.split("\n");
-
-  for (const line of lines) {
-    // Match ## and ### headings (not inside code blocks)
-    const match = line.match(/^(#{2,3})\s+(.+)$/);
-    if (match) {
-      const level = match[1].length as 2 | 3;
-      const text = match[2].replace(/[`*_~\[\]]/g, "").trim();
-      // Generate ID matching rehype-slug behavior
-      const id = text
-        .toLowerCase()
-        .replace(/[^\w\s-]/g, "")
-        .replace(/\s+/g, "-")
-        .replace(/-+/g, "-")
-        .replace(/^-|-$/g, "");
-      if (id) {
-        headings.push({ id, text, level });
-      }
-    }
-  }
-  return headings;
-}
+// extractHeadings moved to src/lib/extract-headings.ts (server-safe)
+export type { TocHeading } from "@/lib/extract-headings";

@@ -1,62 +1,75 @@
 import Link from "next/link";
-import { createServerClient } from "@/lib/supabase";
-import { PRODUCT_LABELS } from "@/lib/constants";
+import { SidebarTree, MobileSidebarToggle } from "@/components/sidebar-tree";
+import type { TreeNode } from "@/components/sidebar-tree";
 
-interface SidebarDoc {
-  slug: string;
-  title: string;
-  doc_type: string;
-  product: string | null;
-  parent_id: string | null;
-  sort_order: number;
+async function fetchTree(): Promise<TreeNode[]> {
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.VERCEL_URL
+    ? `https://${process.env.VERCEL_URL}`
+    : "http://localhost:3000";
+
+  try {
+    const res = await fetch(`${baseUrl}/api/docs/tree`, {
+      next: { revalidate: 60, tags: ["docs-tree"] },
+    });
+    if (!res.ok) return [];
+    const json = await res.json();
+    return json.data || [];
+  } catch {
+    return [];
+  }
 }
 
 export async function Sidebar() {
-  const supabase = createServerClient();
-  const { data: docs } = await supabase
-    .from("documents")
-    .select("slug, title, doc_type, product, parent_id, sort_order")
-    .eq("status", "published")
-    .order("sort_order", { ascending: true });
-
-  if (!docs || docs.length === 0) {
-    return (
-      <nav className="w-64 shrink-0 border-r border-zinc-200 dark:border-zinc-800 p-4">
-        <p className="text-sm text-zinc-500">No documents yet.</p>
-      </nav>
-    );
-  }
-
-  // Group by product
-  const grouped: Record<string, SidebarDoc[]> = {};
-  for (const doc of docs) {
-    const key = doc.product || "general";
-    if (!grouped[key]) grouped[key] = [];
-    grouped[key].push(doc);
-  }
+  const tree = await fetchTree();
 
   return (
-    <nav className="w-64 shrink-0 border-r border-zinc-200 dark:border-zinc-800 p-4 overflow-y-auto">
-      <Link href="/" className="text-sm font-bold block mb-4">APIANT Docs</Link>
-      {Object.entries(grouped).map(([product, items]) => (
-        <div key={product} className="mb-6">
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 dark:text-zinc-400 mb-2">
-            {PRODUCT_LABELS[product] || product}
-          </h3>
-          <ul className="space-y-1">
-            {items.map((doc) => (
-              <li key={doc.slug}>
-                <Link
-                  href={`/docs/${doc.slug}`}
-                  className="block text-sm px-2 py-1 rounded transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-900 text-zinc-600 dark:text-zinc-400"
-                >
-                  {doc.title}
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ))}
-    </nav>
+    <>
+      {/* Desktop sidebar */}
+      <aside
+        className="desktop-sidebar"
+        style={{
+          width: "var(--sidebar-width)",
+          flexShrink: 0,
+          borderRight: "1px solid var(--border-primary)",
+          background: "var(--bg-secondary)",
+          overflowY: "auto",
+          padding: "var(--space-4)",
+          position: "sticky",
+          top: 0,
+          height: "100vh",
+          display: "block",
+        }}
+      >
+        <Link
+          href="/"
+          style={{
+            fontSize: "14px",
+            fontWeight: 700,
+            color: "var(--text-primary)",
+            textDecoration: "none",
+            display: "block",
+            marginBottom: "var(--space-6)",
+          }}
+        >
+          APIANT Docs
+        </Link>
+        {tree.length > 0 ? (
+          <SidebarTree tree={tree} />
+        ) : (
+          <p style={{ fontSize: "14px", color: "var(--text-tertiary)" }}>
+            No documents yet.
+          </p>
+        )}
+      </aside>
+
+      {/* Mobile hamburger + drawer */}
+      <MobileSidebarToggle tree={tree} />
+
+      <style>{`
+        @media (max-width: 767px) {
+          .desktop-sidebar { display: none !important; }
+        }
+      `}</style>
+    </>
   );
 }

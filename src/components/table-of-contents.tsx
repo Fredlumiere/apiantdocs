@@ -1,0 +1,150 @@
+"use client";
+
+import { useState, useEffect, useRef } from "react";
+
+export interface TocHeading {
+  id: string;
+  text: string;
+  level: 2 | 3;
+}
+
+interface TableOfContentsProps {
+  headings: TocHeading[];
+}
+
+export function TableOfContents({ headings }: TableOfContentsProps) {
+  const [activeId, setActiveId] = useState<string>("");
+  const observerRef = useRef<IntersectionObserver | null>(null);
+
+  useEffect(() => {
+    if (headings.length === 0) return;
+
+    const headingElements = headings
+      .map((h) => document.getElementById(h.id))
+      .filter(Boolean) as HTMLElement[];
+
+    if (headingElements.length === 0) return;
+
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        // Find the first heading that is intersecting from top
+        const visible = entries.filter((e) => e.isIntersecting);
+        if (visible.length > 0) {
+          // Use the one closest to the top
+          const sorted = visible.sort(
+            (a, b) => a.boundingClientRect.top - b.boundingClientRect.top
+          );
+          setActiveId(sorted[0].target.id);
+        }
+      },
+      {
+        rootMargin: "-80px 0px -70% 0px",
+        threshold: 0,
+      }
+    );
+
+    for (const el of headingElements) {
+      observerRef.current.observe(el);
+    }
+
+    return () => {
+      observerRef.current?.disconnect();
+    };
+  }, [headings]);
+
+  if (headings.length === 0) return null;
+
+  return (
+    <aside
+      className="toc-aside"
+      style={{
+        width: "var(--toc-width)",
+        flexShrink: 0,
+        position: "sticky",
+        top: "var(--space-8)",
+        maxHeight: "calc(100vh - 64px)",
+        overflowY: "auto",
+        display: "none", // hidden by default, shown via media query
+      }}
+    >
+      <h4 style={{
+        fontSize: "11px",
+        fontWeight: 600,
+        textTransform: "uppercase",
+        letterSpacing: "0.05em",
+        color: "var(--text-tertiary)",
+        marginBottom: "var(--space-3)",
+      }}>
+        On this page
+      </h4>
+      <nav aria-label="Table of contents">
+        <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
+          {headings.map((heading) => (
+            <li key={heading.id}>
+              <a
+                href={`#${heading.id}`}
+                onClick={(e) => {
+                  e.preventDefault();
+                  const el = document.getElementById(heading.id);
+                  if (el) {
+                    el.scrollIntoView({ behavior: "smooth", block: "start" });
+                    // Update URL hash without jumping
+                    window.history.replaceState(null, "", `#${heading.id}`);
+                  }
+                }}
+                style={{
+                  display: "block",
+                  fontSize: "13px",
+                  lineHeight: 1.4,
+                  padding: "3px 0",
+                  paddingLeft: heading.level === 3 ? "calc(var(--space-4) + 8px)" : "8px",
+                  color: activeId === heading.id ? "var(--accent-primary)" : "var(--text-tertiary)",
+                  textDecoration: "none",
+                  borderLeft: activeId === heading.id ? "2px solid var(--accent-primary)" : "2px solid transparent",
+                  transition: "color 0.1s, border-color 0.1s",
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {heading.text}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </nav>
+
+      <style>{`
+        @media (min-width: 1280px) {
+          .toc-aside { display: block !important; }
+        }
+      `}</style>
+    </aside>
+  );
+}
+
+/** Extract headings from markdown — run server-side, pass result as props */
+export function extractHeadings(markdown: string): TocHeading[] {
+  const headings: TocHeading[] = [];
+  const lines = markdown.split("\n");
+
+  for (const line of lines) {
+    // Match ## and ### headings (not inside code blocks)
+    const match = line.match(/^(#{2,3})\s+(.+)$/);
+    if (match) {
+      const level = match[1].length as 2 | 3;
+      const text = match[2].replace(/[`*_~\[\]]/g, "").trim();
+      // Generate ID matching rehype-slug behavior
+      const id = text
+        .toLowerCase()
+        .replace(/[^\w\s-]/g, "")
+        .replace(/\s+/g, "-")
+        .replace(/-+/g, "-")
+        .replace(/^-|-$/g, "");
+      if (id) {
+        headings.push({ id, text, level });
+      }
+    }
+  }
+  return headings;
+}

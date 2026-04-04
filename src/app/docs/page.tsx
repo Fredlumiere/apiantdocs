@@ -23,41 +23,87 @@ export default async function DocsIndex({
   const { data: docs } = await query;
 
   return (
-    <main className="flex-1 max-w-4xl px-8 py-12">
-      <h1 className="text-3xl font-bold tracking-tight mb-2">
+    <main style={{
+      flex: 1,
+      maxWidth: "var(--content-max-width)",
+      padding: "var(--space-8) var(--space-4)",
+    }}>
+      <h1 style={{
+        fontSize: "32px",
+        fontWeight: 700,
+        letterSpacing: "-0.02em",
+        marginBottom: "var(--space-2)",
+        color: "var(--text-primary)",
+      }}>
         {product ? `${PRODUCT_LABELS[product] || product} Documentation` : "All Documentation"}
       </h1>
-      <p className="text-zinc-600 dark:text-zinc-400 mb-8">
+      <p style={{
+        color: "var(--text-secondary)",
+        marginBottom: "var(--space-8)",
+        fontSize: "15px",
+      }}>
         {docs?.length || 0} documents
       </p>
 
       {docs && docs.length > 0 ? (
-        <div className="space-y-3">
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
           {docs.map((doc) => (
             <Link
               key={doc.slug}
               href={`/docs/${doc.slug}`}
-              className="block p-4 rounded-lg border border-zinc-200 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-600 transition-colors"
+              style={{
+                display: "block",
+                padding: "var(--space-4)",
+                borderRadius: "var(--radius-md)",
+                border: "1px solid var(--border-primary)",
+                textDecoration: "none",
+                color: "inherit",
+                transition: "border-color 0.15s, background 0.15s",
+              }}
+              onMouseEnter={(e: React.MouseEvent<HTMLAnchorElement>) => {
+                e.currentTarget.style.borderColor = "var(--border-hover)";
+                e.currentTarget.style.background = "var(--bg-surface)";
+              }}
+              onMouseLeave={(e: React.MouseEvent<HTMLAnchorElement>) => {
+                e.currentTarget.style.borderColor = "var(--border-primary)";
+                e.currentTarget.style.background = "transparent";
+              }}
             >
-              <div className="flex items-center gap-3">
-                <span className="text-xs font-mono px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800">
+              <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
+                <span style={{
+                  fontSize: "11px",
+                  fontFamily: "var(--font-geist-mono), monospace",
+                  padding: "1px 6px",
+                  borderRadius: "4px",
+                  background: "var(--accent-primary-muted)",
+                  color: "var(--accent-primary)",
+                }}>
                   {DOC_TYPE_LABELS[doc.doc_type] || doc.doc_type}
                 </span>
                 {doc.product && (
-                  <span className="text-xs font-mono px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
+                  <span style={{
+                    fontSize: "11px",
+                    fontFamily: "var(--font-geist-mono), monospace",
+                    padding: "1px 6px",
+                    borderRadius: "4px",
+                    background: "var(--bg-tertiary)",
+                    color: "var(--text-secondary)",
+                  }}>
                     {PRODUCT_LABELS[doc.product] || doc.product}
                   </span>
                 )}
               </div>
-              <h3 className="font-medium mt-2">{doc.title}</h3>
+              <h3 style={{ fontWeight: 500, marginTop: "var(--space-2)", fontSize: "15px" }}>{doc.title}</h3>
               {doc.description && (
-                <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">{doc.description}</p>
+                <p style={{ fontSize: "14px", color: "var(--text-secondary)", marginTop: "4px" }}>
+                  {doc.description}
+                </p>
               )}
             </Link>
           ))}
         </div>
       ) : (
-        <p className="text-zinc-500">No published documents yet.</p>
+        <p style={{ color: "var(--text-tertiary)" }}>No published documents yet.</p>
       )}
     </main>
   );

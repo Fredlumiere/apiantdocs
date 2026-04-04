@@ -48,6 +48,7 @@ export default function RootLayout({
         }}
       >
         <AuthProvider>
+          <a href="#main-content" className="skip-to-content">Skip to content</a>
           {children}
           <ChatPanel />
         </AuthProvider>

@@ -47,7 +47,7 @@ async function semanticSearch(
       },
       body: JSON.stringify({
         input: [query],
-        model: "voyage-3-lite",
+        model: "voyage-3",
       }),
     });
 

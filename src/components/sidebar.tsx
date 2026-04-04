@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { SidebarTree, MobileSidebarToggle } from "@/components/sidebar-tree";
 import { SidebarResize } from "@/components/sidebar-resize";
 import type { TreeNode } from "@/components/sidebar-tree";
@@ -38,19 +37,6 @@ export async function Sidebar() {
             height: "100%",
           }}
         >
-          <Link
-            href="/"
-            style={{
-              fontSize: "14px",
-              fontWeight: 700,
-              color: "var(--text-primary)",
-              textDecoration: "none",
-              display: "block",
-              marginBottom: "var(--space-6)",
-            }}
-          >
-            APIANT Docs
-          </Link>
           {tree.length > 0 ? (
             <SidebarTree tree={tree} />
           ) : (

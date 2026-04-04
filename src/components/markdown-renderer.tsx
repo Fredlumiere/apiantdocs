@@ -42,7 +42,7 @@ function PreBlock({ children, ...props }: ComponentPropsWithoutRef<"pre">) {
 
 export function MarkdownRenderer({ content }: { content: string }) {
   return (
-    <div className="prose prose-zinc dark:prose-invert max-w-none prose-headings:scroll-mt-20 prose-code:before:content-none prose-code:after:content-none prose-code:bg-zinc-100 prose-code:dark:bg-zinc-800 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm">
+    <div className="prose prose-zinc dark:prose-invert max-w-[70ch] prose-headings:scroll-mt-20 prose-code:before:content-none prose-code:after:content-none prose-code:bg-zinc-100 prose-code:dark:bg-zinc-800 prose-code:px-1.5 prose-code:py-0.5 prose-code:rounded prose-code:text-sm">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[
@@ -54,6 +54,11 @@ export function MarkdownRenderer({ content }: { content: string }) {
           pre: PreBlock,
           img: ({ src, alt }) => (
             <ImageFrame src={typeof src === "string" ? src : undefined} alt={typeof alt === "string" ? alt : undefined} />
+          ),
+          table: ({ children, ...props }) => (
+            <div style={{ overflowX: "auto", marginBottom: "var(--space-4)" }}>
+              <table {...props}>{children}</table>
+            </div>
           ),
         }}
       >

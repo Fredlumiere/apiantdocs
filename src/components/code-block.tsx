@@ -41,8 +41,8 @@ export function CodeBlock({ language, children }: CodeBlockProps) {
           alignItems: "center",
           justifyContent: "space-between",
           padding: "var(--space-2) var(--space-4)",
-          background: "rgba(255, 255, 255, 0.04)",
-          borderBottom: "1px solid rgba(255, 255, 255, 0.06)",
+          background: "var(--bg-surface)",
+          borderBottom: "1px solid var(--border-primary)",
           borderTopLeftRadius: "var(--radius-md)",
           borderTopRightRadius: "var(--radius-md)",
         }}
@@ -78,7 +78,7 @@ export function CodeBlock({ language, children }: CodeBlockProps) {
           onMouseEnter={(e) => {
             if (!copied) {
               e.currentTarget.style.color = "var(--text-primary)";
-              e.currentTarget.style.background = "rgba(255,255,255,0.06)";
+              e.currentTarget.style.background = "var(--bg-surface-hover)";
             }
           }}
           onMouseLeave={(e) => {

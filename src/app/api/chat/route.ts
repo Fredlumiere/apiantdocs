@@ -40,7 +40,12 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const body = await request.json();
+  let body;
+  try {
+    body = await request.json();
+  } catch {
+    return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
+  }
   const question = typeof body.question === "string" ? body.question.trim() : "";
   const product = typeof body.product === "string" ? body.product : undefined;
 

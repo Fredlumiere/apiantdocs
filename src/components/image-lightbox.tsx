@@ -1,9 +1,18 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 export function ImageFrame({ src, alt }: { src?: string; alt?: string }) {
   const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    if (!open) return;
+    const handleKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, [open]);
 
   if (!src) return null;
 
@@ -43,12 +52,15 @@ export function ImageFrame({ src, alt }: { src?: string; alt?: string }) {
         }
         .doc-image-frame img {
           display: block;
-          border: 1px solid var(--accent-primary);
+          border: 1px solid var(--border-secondary);
           border-radius: var(--radius-md);
           background: var(--bg-secondary);
           max-width: 100%;
           height: auto;
-          padding: 6px;
+          transition: border-color 0.15s;
+        }
+        .doc-image-frame:hover img {
+          border-color: var(--accent-primary);
         }
         .lightbox-overlay {
           position: fixed;

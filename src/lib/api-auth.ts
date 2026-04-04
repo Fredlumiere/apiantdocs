@@ -50,14 +50,8 @@ export async function validateApiKey(
 export async function validateSession(
   request: NextRequest
 ): Promise<{ userId: string; permissions: string[] } | null> {
-  // Check if middleware passed the user ID
-  const userId = request.headers.get("x-supabase-user");
-  if (userId) {
-    // Authenticated users get write + read permissions by default
-    return { userId, permissions: ["read", "write"] };
-  }
-
-  // Fallback: try reading session from cookies directly
+  // SECURITY: Do NOT trust x-supabase-user header — it can be spoofed.
+  // Always validate session from cookies directly.
   try {
     const supabase = createSSRServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,

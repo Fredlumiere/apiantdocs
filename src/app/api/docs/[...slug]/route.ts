@@ -154,13 +154,18 @@ export async function DELETE(
   const { slug } = extractSlug(slugParts);
   const supabase = createServerClient();
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("documents")
     .delete()
-    .eq("slug", slug);
+    .eq("slug", slug)
+    .select("id");
 
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  if (!data || data.length === 0) {
+    return NextResponse.json({ error: "Document not found" }, { status: 404 });
   }
 
   return NextResponse.json({ success: true });

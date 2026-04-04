@@ -1,5 +1,5 @@
 import { Sidebar } from "@/components/sidebar";
-import { SearchModal } from "@/components/search-modal";
+import { DocsHeaderWrapper } from "@/components/docs-header-wrapper";
 
 export default function DocsLayout({
   children,
@@ -9,22 +9,7 @@ export default function DocsLayout({
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
       {/* Docs header with search */}
-      <header style={{
-        borderBottom: "1px solid var(--border-primary)",
-        padding: "var(--space-3) var(--space-4)",
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "space-between",
-        background: "var(--bg-secondary)",
-        position: "sticky",
-        top: 0,
-        zIndex: 20,
-      }}>
-        <div style={{ display: "flex", alignItems: "center", gap: "var(--space-4)" }}>
-          {/* Mobile hamburger will render here via MobileSidebarToggle */}
-        </div>
-        <SearchModal />
-      </header>
+      <DocsHeaderWrapper />
 
       {/* Three-column layout */}
       <div style={{ display: "flex", flex: 1 }}>

@@ -35,8 +35,8 @@ export async function Sidebar() {
           overflowY: "auto",
           padding: "var(--space-4)",
           position: "sticky",
-          top: 0,
-          height: "100vh",
+          top: "52px",
+          height: "calc(100vh - 52px)",
           display: "block",
         }}
       >

@@ -3,6 +3,41 @@ import remarkGfm from "remark-gfm";
 import rehypeHighlight from "rehype-highlight";
 import rehypeSlug from "rehype-slug";
 import rehypeAutolinkHeadings from "rehype-autolink-headings";
+import { CodeBlock } from "@/components/code-block";
+import type { ComponentPropsWithoutRef } from "react";
+
+function PreBlock({ children, ...props }: ComponentPropsWithoutRef<"pre">) {
+  // Check if children is a <code> element with a language class
+  if (
+    children &&
+    typeof children === "object" &&
+    "props" in children &&
+    children.props
+  ) {
+    const codeProps = children.props as {
+      className?: string;
+      children?: React.ReactNode;
+    };
+    const className = codeProps.className || "";
+    const match = className.match(/language-(\w+)/);
+    const language = match ? match[1] : null;
+
+    return (
+      <CodeBlock language={language}>
+        <code {...props} className={className}>
+          {codeProps.children}
+        </code>
+      </CodeBlock>
+    );
+  }
+
+  // Fallback for pre blocks without a code child
+  return (
+    <CodeBlock language={null}>
+      <code>{children}</code>
+    </CodeBlock>
+  );
+}
 
 export function MarkdownRenderer({ content }: { content: string }) {
   return (
@@ -14,6 +49,9 @@ export function MarkdownRenderer({ content }: { content: string }) {
           rehypeSlug,
           [rehypeAutolinkHeadings, { behavior: "wrap" }],
         ]}
+        components={{
+          pre: PreBlock,
+        }}
       >
         {content}
       </ReactMarkdown>

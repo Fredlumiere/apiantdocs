@@ -40,6 +40,15 @@ export function ChatPanel() {
     }
   }, [isOpen]);
 
+  // Listen for custom event to open chat from other components
+  useEffect(() => {
+    function handleOpenChat() {
+      setIsOpen(true);
+    }
+    window.addEventListener("open-chat-panel", handleOpenChat);
+    return () => window.removeEventListener("open-chat-panel", handleOpenChat);
+  }, []);
+
   async function sendMessage(retryContent?: string) {
     const question = retryContent || input.trim();
     if (!question || question.length < 3 || loading) return;

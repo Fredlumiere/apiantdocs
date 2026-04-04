@@ -61,8 +61,8 @@ export function TableOfContents({ headings }: TableOfContentsProps) {
         width: "var(--toc-width)",
         flexShrink: 0,
         position: "sticky",
-        top: "var(--space-8)",
-        maxHeight: "calc(100vh - 64px)",
+        top: "calc(52px + var(--space-8))",
+        maxHeight: "calc(100vh - 52px - 64px)",
         overflowY: "auto",
         display: "none", // hidden by default, shown via media query
       }}

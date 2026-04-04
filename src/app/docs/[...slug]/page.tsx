@@ -3,6 +3,7 @@ import { createServerClient } from "@/lib/supabase";
 import { MarkdownRenderer } from "@/components/markdown-renderer";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { TableOfContents, extractHeadings } from "@/components/table-of-contents";
+import { DocNav } from "@/components/doc-nav";
 import { DOC_TYPE_LABELS, PRODUCT_LABELS } from "@/lib/constants";
 import type { Metadata } from "next";
 
@@ -61,8 +62,38 @@ export default async function DocPage({ params }: Props) {
     }
   }
 
+  // Fetch prev/next docs (same product, by sort_order)
+  const { data: siblings } = await supabase
+    .from("documents")
+    .select("slug, title, sort_order")
+    .eq("status", "published")
+    .eq("product", doc.product || "")
+    .order("sort_order", { ascending: true });
+
+  let prevDoc: { slug: string; title: string } | null = null;
+  let nextDoc: { slug: string; title: string } | null = null;
+
+  if (siblings && siblings.length > 1) {
+    const currentIndex = siblings.findIndex((s) => s.slug === fullSlug);
+    if (currentIndex > 0) {
+      prevDoc = { slug: siblings[currentIndex - 1].slug, title: siblings[currentIndex - 1].title };
+    }
+    if (currentIndex >= 0 && currentIndex < siblings.length - 1) {
+      nextDoc = { slug: siblings[currentIndex + 1].slug, title: siblings[currentIndex + 1].title };
+    }
+  }
+
   // Extract headings server-side for TOC
   const headings = extractHeadings(doc.body || "");
+
+  // Format last updated
+  const updatedAt = doc.updated_at
+    ? new Date(doc.updated_at).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      })
+    : null;
 
   return (
     <div style={{
@@ -139,6 +170,23 @@ export default async function DocPage({ params }: Props) {
           )}
         </div>
         <MarkdownRenderer content={doc.body} />
+
+        {/* Prev/Next navigation */}
+        <DocNav prev={prevDoc} next={nextDoc} />
+
+        {/* Last updated */}
+        {updatedAt && (
+          <div style={{
+            marginTop: "var(--space-8)",
+            paddingTop: "var(--space-4)",
+            borderTop: "1px solid var(--border-primary)",
+            fontSize: "13px",
+            color: "var(--text-tertiary)",
+            fontFamily: "var(--font-geist-mono), monospace",
+          }}>
+            Last updated {updatedAt}
+          </div>
+        )}
       </main>
 
       <TableOfContents headings={headings} />

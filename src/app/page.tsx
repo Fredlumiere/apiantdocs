@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { createServerClient } from "@/lib/supabase";
 import { PRODUCTS } from "@/lib/constants";
+import { HomeSearchHero } from "@/components/home-search-hero";
 
 export const revalidate = 60;
 
@@ -15,60 +16,175 @@ export default async function Home() {
 
   return (
     <div className="flex flex-col min-h-full">
-      <header className="border-b border-zinc-200 dark:border-zinc-800">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link href="/" className="text-xl font-bold">APIANT Docs</Link>
-          <nav className="flex items-center gap-6 text-sm">
-            <Link href="/docs" className="hover:text-zinc-600 dark:hover:text-zinc-300">All Docs</Link>
-            <Link href="/api/docs" className="hover:text-zinc-600 dark:hover:text-zinc-300">API</Link>
+      <header
+        style={{
+          borderBottom: "1px solid var(--border-primary)",
+          background: "var(--bg-secondary)",
+        }}
+      >
+        <div
+          style={{
+            maxWidth: "1280px",
+            margin: "0 auto",
+            padding: "var(--space-4) var(--space-6)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <Link
+            href="/"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              textDecoration: "none",
+              gap: "6px",
+            }}
+          >
+            <span style={{ fontSize: "18px", fontWeight: 700, color: "var(--text-primary)", letterSpacing: "-0.01em" }}>
+              API
+            </span>
+            <span style={{ fontSize: "18px", fontWeight: 700, color: "var(--accent-primary)", letterSpacing: "-0.01em" }}>
+              ANT
+            </span>
+            <span style={{ fontSize: "14px", fontWeight: 500, color: "var(--text-tertiary)", marginLeft: "2px" }}>
+              Docs
+            </span>
+          </Link>
+          <nav className="home-nav" style={{ display: "flex", alignItems: "center", gap: "var(--space-6)", fontSize: "14px" }}>
+            <Link href="/docs" className="home-nav-link">
+              Docs
+            </Link>
+            <Link href="/api/docs" className="home-nav-link">
+              API Reference
+            </Link>
           </nav>
         </div>
+        <style>{`
+          .home-nav-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            transition: color 0.1s;
+          }
+          .home-nav-link:hover {
+            color: var(--text-primary);
+          }
+          .home-card {
+            display: block;
+            padding: var(--space-6);
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-primary);
+            text-decoration: none;
+            color: inherit;
+            transition: border-color 0.15s, background 0.15s;
+          }
+          .home-card:hover {
+            border-color: var(--border-hover);
+            background: var(--bg-surface);
+          }
+          .home-card-compact {
+            padding: var(--space-4);
+            border-radius: var(--radius-md);
+          }
+        `}</style>
       </header>
 
-      <main className="flex-1 max-w-7xl mx-auto px-6 py-16 w-full">
-        <div className="max-w-2xl mb-16">
-          <h1 className="text-4xl font-bold tracking-tight mb-4">APIANT Documentation</h1>
-          <p className="text-lg text-zinc-600 dark:text-zinc-400">
-            The AI-first integration platform. Build automations, connect APIs, and deploy integrations at scale.
-          </p>
+      <main style={{ flex: 1, maxWidth: "1280px", margin: "0 auto", padding: "0 var(--space-6)", width: "100%" }}>
+        {/* Hero section with search */}
+        <div style={{ paddingTop: "var(--space-12)", paddingBottom: "var(--space-12)" }}>
+          <div style={{ maxWidth: "640px", marginBottom: "var(--space-8)" }}>
+            <h1 style={{
+              fontSize: "40px",
+              fontWeight: 700,
+              letterSpacing: "-0.025em",
+              lineHeight: 1.15,
+              marginBottom: "var(--space-4)",
+              color: "var(--text-primary)",
+            }}>
+              APIANT Documentation
+            </h1>
+            <p style={{
+              fontSize: "18px",
+              color: "var(--text-secondary)",
+              lineHeight: 1.6,
+              marginBottom: "var(--space-6)",
+            }}>
+              The AI-first integration platform. Build automations, connect APIs, and deploy integrations at scale.
+            </p>
+            <HomeSearchHero />
+          </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
+        {/* Product cards */}
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
+          gap: "var(--space-6)",
+          marginBottom: "var(--space-12)",
+        }}>
           {PRODUCTS.map((p) => (
             <Link
               key={p.key}
               href={`/docs?product=${p.key}`}
-              className="block p-6 rounded-lg border border-zinc-200 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-600 transition-colors"
+              className="home-card"
             >
-              <h2 className="text-lg font-semibold mb-2">{p.label}</h2>
-              <p className="text-sm text-zinc-600 dark:text-zinc-400">{p.description}</p>
+              <h2 style={{ fontSize: "18px", fontWeight: 600, marginBottom: "var(--space-2)", color: "var(--text-primary)" }}>
+                {p.label}
+              </h2>
+              <p style={{ fontSize: "14px", color: "var(--text-secondary)" }}>{p.description}</p>
             </Link>
           ))}
         </div>
 
+        {/* Recent docs */}
         {docs && docs.length > 0 && (
-          <div>
-            <h2 className="text-2xl font-semibold mb-6">Recent Documentation</h2>
-            <div className="space-y-3">
+          <div style={{ marginBottom: "var(--space-12)" }}>
+            <h2 style={{
+              fontSize: "24px",
+              fontWeight: 600,
+              marginBottom: "var(--space-6)",
+              color: "var(--text-primary)",
+            }}>
+              Recent Documentation
+            </h2>
+            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
               {docs.map((doc) => (
                 <Link
                   key={doc.slug}
                   href={`/docs/${doc.slug}`}
-                  className="block p-4 rounded-lg border border-zinc-200 dark:border-zinc-800 hover:border-zinc-400 dark:hover:border-zinc-600 transition-colors"
+                  className="home-card home-card-compact"
                 >
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs font-mono px-2 py-0.5 rounded bg-zinc-100 dark:bg-zinc-800">
+                  <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
+                    <span style={{
+                      fontSize: "11px",
+                      fontFamily: "var(--font-geist-mono), monospace",
+                      padding: "1px 6px",
+                      borderRadius: "4px",
+                      background: "var(--accent-primary-muted)",
+                      color: "var(--accent-primary)",
+                    }}>
                       {doc.doc_type}
                     </span>
                     {doc.product && (
-                      <span className="text-xs font-mono px-2 py-0.5 rounded bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300">
+                      <span style={{
+                        fontSize: "11px",
+                        fontFamily: "var(--font-geist-mono), monospace",
+                        padding: "1px 6px",
+                        borderRadius: "4px",
+                        background: "var(--bg-tertiary)",
+                        color: "var(--text-secondary)",
+                      }}>
                         {doc.product}
                       </span>
                     )}
                   </div>
-                  <h3 className="font-medium mt-2">{doc.title}</h3>
+                  <h3 style={{ fontWeight: 500, marginTop: "var(--space-2)", fontSize: "15px", color: "var(--text-primary)" }}>
+                    {doc.title}
+                  </h3>
                   {doc.description && (
-                    <p className="text-sm text-zinc-600 dark:text-zinc-400 mt-1">{doc.description}</p>
+                    <p style={{ fontSize: "14px", color: "var(--text-secondary)", marginTop: "4px" }}>
+                      {doc.description}
+                    </p>
                   )}
                 </Link>
               ))}

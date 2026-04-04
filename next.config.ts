@@ -1,7 +1,10 @@
 import type { NextConfig } from "next";
+import { archbeeRedirects } from "./src/lib/archbee-redirects";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  async redirects() {
+    return archbeeRedirects;
+  },
 };
 
 export default nextConfig;

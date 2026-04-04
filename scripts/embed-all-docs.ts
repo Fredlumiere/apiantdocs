@@ -54,7 +54,7 @@ async function generateEmbeddings(texts: string[]): Promise<number[][]> {
     results.push(...data.data.map((d: { embedding: number[] }) => d.embedding));
 
     if (i + 20 < texts.length) {
-      await new Promise((r) => setTimeout(r, 500)); // Rate limit courtesy
+      await new Promise((r) => setTimeout(r, 2000)); // Rate limit courtesy
     }
   }
   return results;
@@ -107,9 +107,12 @@ async function main() {
 
       console.log(` ${chunks.length} chunks`);
       success++;
+      // Growth tier: 200 RPM — 500ms between docs is plenty
+      await new Promise((r) => setTimeout(r, 500));
     } catch (err) {
       console.log(` FAILED: ${err}`);
       failed++;
+      await new Promise((r) => setTimeout(r, 5000));
     }
   }
 

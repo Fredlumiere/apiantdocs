@@ -41,13 +41,12 @@ export default async function Home() {
               gap: "6px",
             }}
           >
-            <span style={{ fontSize: "18px", fontWeight: 700, color: "var(--text-primary)", letterSpacing: "-0.01em" }}>
-              API
-            </span>
-            <span style={{ fontSize: "18px", fontWeight: 700, color: "var(--accent-primary)", letterSpacing: "-0.01em" }}>
-              ANT
-            </span>
-            <span style={{ fontSize: "14px", fontWeight: 500, color: "var(--text-tertiary)", marginLeft: "2px" }}>
+            <img
+              src="/apiant-logo.svg"
+              alt="APIANT"
+              style={{ height: "22px", width: "auto" }}
+            />
+            <span style={{ fontSize: "14px", fontWeight: 500, color: "var(--text-tertiary)", marginLeft: "4px" }}>
               Docs
             </span>
           </Link>

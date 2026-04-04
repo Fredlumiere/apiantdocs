@@ -51,23 +51,7 @@ export default async function DocsIndex({
             <Link
               key={doc.slug}
               href={`/docs/${doc.slug}`}
-              style={{
-                display: "block",
-                padding: "var(--space-4)",
-                borderRadius: "var(--radius-md)",
-                border: "1px solid var(--border-primary)",
-                textDecoration: "none",
-                color: "inherit",
-                transition: "border-color 0.15s, background 0.15s",
-              }}
-              onMouseEnter={(e: React.MouseEvent<HTMLAnchorElement>) => {
-                e.currentTarget.style.borderColor = "var(--border-hover)";
-                e.currentTarget.style.background = "var(--bg-surface)";
-              }}
-              onMouseLeave={(e: React.MouseEvent<HTMLAnchorElement>) => {
-                e.currentTarget.style.borderColor = "var(--border-primary)";
-                e.currentTarget.style.background = "transparent";
-              }}
+              className="doc-list-card"
             >
               <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
                 <span style={{
@@ -105,6 +89,22 @@ export default async function DocsIndex({
       ) : (
         <p style={{ color: "var(--text-tertiary)" }}>No published documents yet.</p>
       )}
+
+      <style>{`
+        .doc-list-card {
+          display: block;
+          padding: var(--space-4);
+          border-radius: var(--radius-md);
+          border: 1px solid var(--border-primary);
+          text-decoration: none;
+          color: inherit;
+          transition: border-color 0.15s, background 0.15s;
+        }
+        .doc-list-card:hover {
+          border-color: var(--border-hover);
+          background: var(--bg-surface);
+        }
+      `}</style>
     </main>
   );
 }

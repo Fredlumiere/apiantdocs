@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase";
 import { requireWriteAccess } from "@/lib/api-auth";
+import { corsHeaders } from "@/lib/cors";
+
+export async function OPTIONS() {
+  return corsHeaders(new NextResponse(null, { status: 204 }));
+}
 
 // GET /api/docs — list documents (public: published only)
 export async function GET(request: NextRequest) {
@@ -9,19 +14,21 @@ export async function GET(request: NextRequest) {
 
   const doc_type = searchParams.get("type");
   const product = searchParams.get("product");
+  const tag = searchParams.get("tag");
   const status = searchParams.get("status") || "published";
   const limit = Math.min(parseInt(searchParams.get("limit") || "50"), 100);
   const offset = parseInt(searchParams.get("offset") || "0");
 
   let query = supabase
     .from("documents")
-    .select("id, slug, title, description, doc_type, product, parent_id, sort_order, status, version, created_at, updated_at, published_at", { count: "exact" })
+    .select("id, slug, title, description, doc_type, product, parent_id, sort_order, tags, status, version, created_at, updated_at, published_at", { count: "exact" })
     .eq("status", status)
     .order("sort_order", { ascending: true })
     .range(offset, offset + limit - 1);
 
   if (doc_type) query = query.eq("doc_type", doc_type);
   if (product) query = query.eq("product", product);
+  if (tag) query = query.contains("tags", [tag]);
 
   const { data, error, count: total } = await query;
 
@@ -50,7 +57,7 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { slug, title, description, doc_body, doc_type, product, parent_id, sort_order, metadata, status } = body;
+  const { slug, title, description, doc_body, doc_type, product, parent_id, sort_order, metadata, status, tags } = body;
 
   if (!slug || !title || !doc_body || !doc_type) {
     return NextResponse.json(
@@ -72,6 +79,7 @@ export async function POST(request: NextRequest) {
       product: product || null,
       parent_id: parent_id || null,
       sort_order: sort_order || 0,
+      tags: Array.isArray(tags) ? tags : [],
       metadata: metadata || {},
       status: status || "draft",
       published_at: status === "published" ? new Date().toISOString() : null,

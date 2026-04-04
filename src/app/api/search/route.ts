@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase";
+import { corsHeaders } from "@/lib/cors";
+
+export async function OPTIONS() {
+  return corsHeaders(new NextResponse(null, { status: 204 }));
+}
 
 /**
  * Sanitize search input for use with websearch_to_tsquery.
@@ -161,7 +166,7 @@ export async function GET(request: NextRequest) {
   const q = searchParams.get("q");
   const product = searchParams.get("product");
   const limit = Math.min(parseInt(searchParams.get("limit") || "10"), 50);
-  const mode = searchParams.get("mode") || "keyword";
+  const mode = searchParams.get("mode") || (process.env.VOYAGE_API_KEY ? "hybrid" : "keyword");
 
   if (!q || q.trim().length < 2) {
     return NextResponse.json({ error: "Query parameter 'q' is required (min 2 chars)" }, { status: 400 });

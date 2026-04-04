@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createServerClient } from "@/lib/supabase";
+import { corsHeaders } from "@/lib/cors";
+
+export async function OPTIONS() {
+  return corsHeaders(new NextResponse(null, { status: 204 }));
+}
 
 // Simple in-memory rate limiter
 const rateLimiter = new Map<string, { count: number; resetAt: number }>();
@@ -33,6 +38,14 @@ function sanitizeQuery(input: string): string {
 export async function POST(request: NextRequest) {
   const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
   const rateCheck = checkRateLimit(ip);
+
+  // Purge expired entries to prevent memory leak
+  if (rateLimiter.size > 1000) {
+    const now = Date.now();
+    for (const [key, entry] of rateLimiter) {
+      if (now > entry.resetAt) rateLimiter.delete(key);
+    }
+  }
   if (!rateCheck.allowed) {
     return NextResponse.json(
       { error: "Too many requests. Please wait before asking another question." },

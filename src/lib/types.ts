@@ -8,6 +8,7 @@ export interface Document {
   product: "api-apps" | "platform" | "mcp" | null;
   parent_id: string | null;
   sort_order: number;
+  tags: string[];
   metadata: Record<string, unknown>;
   status: "draft" | "published" | "archived";
   version: number;

@@ -6,6 +6,7 @@ import { TableOfContents } from "@/components/table-of-contents";
 import { extractHeadings } from "@/lib/extract-headings";
 import { DocNav } from "@/components/doc-nav";
 import { ChildCards } from "@/components/child-cards";
+import { TagList } from "@/components/tag-list";
 import { DOC_TYPE_LABELS, PRODUCT_LABELS } from "@/lib/constants";
 import type { Metadata } from "next";
 
@@ -92,6 +93,20 @@ export default async function DocPage({ params }: Props) {
     .eq("parent_id", doc.id)
     .eq("status", "published")
     .order("sort_order", { ascending: true });
+
+  // Fetch related docs (share at least one tag, excluding self)
+  const docTags: string[] = doc.tags || [];
+  let relatedDocs: { slug: string; title: string; tags: string[] }[] = [];
+  if (docTags.length > 0) {
+    const { data: related } = await supabase
+      .from("documents")
+      .select("slug, title, tags")
+      .eq("status", "published")
+      .neq("id", doc.id)
+      .overlaps("tags", docTags)
+      .limit(5);
+    relatedDocs = related || [];
+  }
 
   // Clean body: strip Archbee JSX tags that don't render in Markdown
   const cleanBody = (doc.body || "")
@@ -186,12 +201,67 @@ export default async function DocPage({ params }: Props) {
               {doc.description}
             </p>
           )}
+          {docTags.length > 0 && (
+            <div style={{ marginTop: "var(--space-4)" }}>
+              <TagList tags={docTags} />
+            </div>
+          )}
         </div>
         {cleanBody && <MarkdownRenderer content={cleanBody} />}
 
         {/* Child document cards */}
         {childDocs && childDocs.length > 0 && (
           <ChildCards children={childDocs} />
+        )}
+
+        {/* Related docs */}
+        {relatedDocs.length > 0 && (
+          <div style={{
+            marginTop: "var(--space-8)",
+            paddingTop: "var(--space-6)",
+            borderTop: "1px solid var(--border-primary)",
+          }}>
+            <h2 style={{
+              fontSize: "16px",
+              fontWeight: 600,
+              color: "var(--text-primary)",
+              marginBottom: "var(--space-4)",
+              fontFamily: "var(--font-geist-mono), monospace",
+              letterSpacing: "0.02em",
+            }}>
+              Related docs
+            </h2>
+            <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
+              {relatedDocs.map((rd) => (
+                <a
+                  key={rd.slug}
+                  href={`/docs/${rd.slug}`}
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    padding: "var(--space-3) var(--space-4)",
+                    borderRadius: "var(--radius-md)",
+                    border: "1px solid var(--border-primary)",
+                    color: "var(--text-primary)",
+                    textDecoration: "none",
+                    fontSize: "14px",
+                    transition: "border-color 0.15s, background 0.15s",
+                  }}
+                  className="related-doc-link"
+                >
+                  <span>{rd.title}</span>
+                  <TagList tags={(rd.tags || []).filter((t: string) => docTags.includes(t))} compact />
+                </a>
+              ))}
+            </div>
+            <style>{`
+              .related-doc-link:hover {
+                border-color: var(--border-hover) !important;
+                background: var(--bg-surface) !important;
+              }
+            `}</style>
+          </div>
         )}
 
         {/* Prev/Next navigation */}

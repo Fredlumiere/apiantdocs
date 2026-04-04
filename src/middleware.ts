@@ -60,6 +60,13 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
+  // Add CORS headers to all API routes
+  if (pathname.startsWith("/api/")) {
+    response.headers.set("Access-Control-Allow-Origin", "*");
+    response.headers.set("Access-Control-Allow-Methods", "GET, POST, PATCH, DELETE, OPTIONS");
+    response.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Changed-By");
+  }
+
   // Pass user ID to API routes via header (for session-based API auth)
   if (user && pathname.startsWith("/api/")) {
     response.headers.set("x-supabase-user", user.id);

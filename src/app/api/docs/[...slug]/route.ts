@@ -2,6 +2,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase";
 import { requireWriteAccess } from "@/lib/api-auth";
 import { embedDocument } from "@/lib/embeddings";
+import { corsHeaders } from "@/lib/cors";
+
+export async function OPTIONS() {
+  return corsHeaders(new NextResponse(null, { status: 204 }));
+}
 
 function extractSlug(slugParts: string[]): { slug: string; action: string | null } {
   // If last segment is "embed", treat it as an action
@@ -22,7 +27,7 @@ export async function GET(
 
   const { data, error } = await supabase
     .from("documents")
-    .select("*")
+    .select("id, slug, title, description, body, doc_type, product, version, sort_order, parent_id, status, created_at, updated_at, published_at")
     .eq("slug", slug)
     .eq("status", "published")
     .single();
@@ -95,6 +100,18 @@ export async function PATCH(
     return NextResponse.json({ error: "Document not found" }, { status: 404 });
   }
 
+  // Check slug uniqueness if renaming
+  if (body.slug !== undefined && body.slug !== existing.slug) {
+    const { data: conflict } = await supabase
+      .from("documents")
+      .select("id")
+      .eq("slug", body.slug)
+      .single();
+    if (conflict) {
+      return NextResponse.json({ error: "Slug already in use" }, { status: 409 });
+    }
+  }
+
   const updates: Record<string, unknown> = {};
   if (body.title !== undefined) updates.title = body.title;
   if (body.description !== undefined) updates.description = body.description;
@@ -104,6 +121,7 @@ export async function PATCH(
   if (body.parent_id !== undefined) updates.parent_id = body.parent_id;
   if (body.sort_order !== undefined) updates.sort_order = body.sort_order;
   if (body.metadata !== undefined) updates.metadata = body.metadata;
+  if (body.tags !== undefined) updates.tags = Array.isArray(body.tags) ? body.tags : [];
   if (body.status !== undefined) {
     updates.status = body.status;
     if (body.status === "published" && !existing.published_at) {

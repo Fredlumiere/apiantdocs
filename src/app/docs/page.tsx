@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { createServerClient } from "@/lib/supabase";
+import { TagList } from "@/components/tag-list";
 import { DOC_TYPE_LABELS, PRODUCT_LABELS } from "@/lib/constants";
 
 export const revalidate = 60;
@@ -7,20 +8,27 @@ export const revalidate = 60;
 export default async function DocsIndex({
   searchParams,
 }: {
-  searchParams: Promise<{ product?: string }>;
+  searchParams: Promise<{ product?: string; tag?: string }>;
 }) {
-  const { product } = await searchParams;
+  const { product, tag } = await searchParams;
   const supabase = createServerClient();
 
   let query = supabase
     .from("documents")
-    .select("slug, title, description, doc_type, product")
+    .select("slug, title, description, doc_type, product, tags")
     .eq("status", "published")
     .order("sort_order", { ascending: true });
 
   if (product) query = query.eq("product", product);
+  if (tag) query = query.contains("tags", [tag]);
 
   const { data: docs } = await query;
+
+  const heading = tag
+    ? `Tagged: ${tag}`
+    : product
+      ? `${PRODUCT_LABELS[product] || product} Documentation`
+      : "All Documentation";
 
   return (
     <main style={{
@@ -35,15 +43,41 @@ export default async function DocsIndex({
         marginBottom: "var(--space-2)",
         color: "var(--text-primary)",
       }}>
-        {product ? `${PRODUCT_LABELS[product] || product} Documentation` : "All Documentation"}
+        {heading}
       </h1>
-      <p style={{
-        color: "var(--text-secondary)",
+
+      <div style={{
+        display: "flex",
+        alignItems: "center",
+        gap: "var(--space-4)",
         marginBottom: "var(--space-8)",
-        fontSize: "15px",
       }}>
-        {docs?.length || 0} documents
-      </p>
+        <p style={{
+          color: "var(--text-secondary)",
+          fontSize: "15px",
+          margin: 0,
+        }}>
+          {docs?.length || 0} documents
+        </p>
+
+        {tag && (
+          <Link
+            href={product ? `/docs?product=${product}` : "/docs"}
+            style={{
+              fontSize: "13px",
+              fontFamily: "var(--font-geist-mono), monospace",
+              padding: "2px 10px",
+              borderRadius: "var(--radius-sm)",
+              background: "var(--accent-primary-muted)",
+              color: "var(--accent-primary)",
+              textDecoration: "none",
+              transition: "opacity 0.15s",
+            }}
+          >
+            clear filter
+          </Link>
+        )}
+      </div>
 
       {docs && docs.length > 0 ? (
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
@@ -53,7 +87,7 @@ export default async function DocsIndex({
               href={`/docs/${doc.slug}`}
               className="doc-list-card"
             >
-              <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)" }}>
+              <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap" }}>
                 <span style={{
                   fontSize: "11px",
                   fontFamily: "var(--font-geist-mono), monospace",
@@ -82,6 +116,11 @@ export default async function DocsIndex({
                 <p style={{ fontSize: "14px", color: "var(--text-secondary)", marginTop: "4px" }}>
                   {doc.description}
                 </p>
+              )}
+              {doc.tags && doc.tags.length > 0 && (
+                <div style={{ marginTop: "var(--space-2)" }}>
+                  <TagList tags={doc.tags} compact />
+                </div>
               )}
             </Link>
           ))}

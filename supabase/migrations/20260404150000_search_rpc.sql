@@ -32,7 +32,7 @@ BEGIN
     ts_rank(
       to_tsvector('english', coalesce(d.title, '') || ' ' || coalesce(d.description, '') || ' ' || coalesce(d.body, '')),
       websearch_to_tsquery('english', search_query)
-    ) AS rank
+    )::double precision AS rank
   FROM documents d
   WHERE d.status = 'published'
     AND to_tsvector('english', coalesce(d.title, '') || ' ' || coalesce(d.description, '') || ' ' || coalesce(d.body, ''))

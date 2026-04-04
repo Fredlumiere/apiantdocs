@@ -48,6 +48,7 @@ export function ImageFrame({ src, alt }: { src?: string; alt?: string }) {
           background: var(--bg-secondary);
           max-width: 100%;
           height: auto;
+          padding: 6px;
         }
         .lightbox-overlay {
           position: fixed;

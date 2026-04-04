@@ -26,30 +26,7 @@ export function DocNav({ prev, next }: DocNavProps) {
       }}
     >
       {prev ? (
-        <Link
-          href={`/docs/${prev.slug}`}
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "4px",
-            padding: "var(--space-3) var(--space-4)",
-            borderRadius: "var(--radius-md)",
-            border: "1px solid var(--border-primary)",
-            textDecoration: "none",
-            color: "inherit",
-            flex: 1,
-            maxWidth: "50%",
-            transition: "border-color 0.15s, background 0.15s",
-          }}
-          onMouseEnter={(e: React.MouseEvent<HTMLAnchorElement>) => {
-            e.currentTarget.style.borderColor = "var(--border-hover)";
-            e.currentTarget.style.background = "var(--bg-surface)";
-          }}
-          onMouseLeave={(e: React.MouseEvent<HTMLAnchorElement>) => {
-            e.currentTarget.style.borderColor = "var(--border-primary)";
-            e.currentTarget.style.background = "transparent";
-          }}
-        >
+        <Link href={`/docs/${prev.slug}`} className="doc-nav-link">
           <span style={{ fontSize: "12px", color: "var(--text-tertiary)" }}>
             &#8592; Previous
           </span>
@@ -69,31 +46,7 @@ export function DocNav({ prev, next }: DocNavProps) {
       )}
 
       {next ? (
-        <Link
-          href={`/docs/${next.slug}`}
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "flex-end",
-            gap: "4px",
-            padding: "var(--space-3) var(--space-4)",
-            borderRadius: "var(--radius-md)",
-            border: "1px solid var(--border-primary)",
-            textDecoration: "none",
-            color: "inherit",
-            flex: 1,
-            maxWidth: "50%",
-            transition: "border-color 0.15s, background 0.15s",
-          }}
-          onMouseEnter={(e: React.MouseEvent<HTMLAnchorElement>) => {
-            e.currentTarget.style.borderColor = "var(--border-hover)";
-            e.currentTarget.style.background = "var(--bg-surface)";
-          }}
-          onMouseLeave={(e: React.MouseEvent<HTMLAnchorElement>) => {
-            e.currentTarget.style.borderColor = "var(--border-primary)";
-            e.currentTarget.style.background = "transparent";
-          }}
-        >
+        <Link href={`/docs/${next.slug}`} className="doc-nav-link" style={{ alignItems: "flex-end" }}>
           <span style={{ fontSize: "12px", color: "var(--text-tertiary)" }}>
             Next &#8594;
           </span>
@@ -111,6 +64,26 @@ export function DocNav({ prev, next }: DocNavProps) {
       ) : (
         <div />
       )}
+
+      <style>{`
+        .doc-nav-link {
+          display: flex;
+          flex-direction: column;
+          gap: 4px;
+          padding: var(--space-3) var(--space-4);
+          border-radius: var(--radius-md);
+          border: 1px solid var(--border-primary);
+          text-decoration: none;
+          color: inherit;
+          flex: 1;
+          max-width: 50%;
+          transition: border-color 0.15s, background 0.15s;
+        }
+        .doc-nav-link:hover {
+          border-color: var(--border-hover);
+          background: var(--bg-surface);
+        }
+      `}</style>
     </nav>
   );
 }

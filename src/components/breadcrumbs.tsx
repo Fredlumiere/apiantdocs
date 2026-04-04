@@ -3,7 +3,7 @@ import { PRODUCT_LABELS } from "@/lib/constants";
 
 interface BreadcrumbItem {
   label: string;
-  href: string | null; // null = current page (no link)
+  href: string | null;
 }
 
 interface BreadcrumbsProps {
@@ -35,10 +35,7 @@ export function Breadcrumbs({ slug, title, product, parentTitle, parentSlug }: B
   }
 
   crumbs.push({ label: title, href: null });
-
-  // Don't render if only Home > Docs > Page (too short to be useful)
-  // Actually render always — spec says "Home > Product > Parent Doc > Current Page"
-  void slug; // used in parent for key
+  void slug;
 
   return (
     <nav aria-label="Breadcrumb" style={{ marginBottom: "var(--space-4)" }}>
@@ -60,20 +57,7 @@ export function Breadcrumbs({ slug, title, product, parentTitle, parentSlug }: B
               </span>
             )}
             {crumb.href ? (
-              <Link
-                href={crumb.href}
-                style={{
-                  color: "var(--text-tertiary)",
-                  textDecoration: "none",
-                  transition: "color 0.1s",
-                }}
-                onMouseEnter={(e: React.MouseEvent<HTMLAnchorElement>) => {
-                  e.currentTarget.style.color = "var(--accent-primary)";
-                }}
-                onMouseLeave={(e: React.MouseEvent<HTMLAnchorElement>) => {
-                  e.currentTarget.style.color = "var(--text-tertiary)";
-                }}
-              >
+              <Link href={crumb.href} className="breadcrumb-link">
                 {crumb.label}
               </Link>
             ) : (
@@ -82,6 +66,16 @@ export function Breadcrumbs({ slug, title, product, parentTitle, parentSlug }: B
           </li>
         ))}
       </ol>
+      <style>{`
+        .breadcrumb-link {
+          color: var(--text-tertiary);
+          text-decoration: none;
+          transition: color 0.1s;
+        }
+        .breadcrumb-link:hover {
+          color: var(--accent-primary);
+        }
+      `}</style>
     </nav>
   );
 }

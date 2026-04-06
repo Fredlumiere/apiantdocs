@@ -55,7 +55,7 @@ export function ImageFrame({ src, alt }: { src?: string; alt?: string }) {
           border: 1px solid var(--border-secondary);
           border-radius: var(--radius-md);
           background: var(--bg-secondary);
-          max-width: 100%;
+          max-width: min(100%, 600px);
           height: auto;
           transition: border-color 0.15s;
         }

@@ -65,6 +65,111 @@ export default async function DocsIndex({
       ? `${PRODUCT_LABELS[product] || product} Documentation`
       : "Documentation";
 
+  // API Apps landing — show app family grid with search
+  if (product === "api-apps" && !tag) {
+    // Count docs per app family
+    const familyCounts: Record<string, number> = {};
+    for (const f of APP_FAMILIES) {
+      familyCounts[f.key] = (docs || []).filter(d =>
+        d.slug.toLowerCase().includes(f.key) || (d.tags || []).includes(f.key)
+      ).length;
+    }
+
+    return (
+      <main style={{
+        flex: 1,
+        maxWidth: "var(--content-max-width)",
+        padding: "var(--space-8) var(--space-4)",
+      }}>
+        <h1 style={{
+          fontSize: "32px",
+          fontWeight: 700,
+          letterSpacing: "-0.02em",
+          marginBottom: "var(--space-2)",
+          color: "var(--text-primary)",
+        }}>
+          API Apps
+        </h1>
+        <p style={{
+          color: "var(--text-secondary)",
+          fontSize: "15px",
+          marginBottom: "var(--space-8)",
+          maxWidth: "60ch",
+          lineHeight: 1.5,
+        }}>
+          Pre-built integration products connecting your favorite platforms. Choose your app to get started with setup guides, configuration, and troubleshooting.
+        </p>
+
+        <div style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
+          gap: "var(--space-4)",
+          marginBottom: "var(--space-8)",
+        }}>
+          {APP_FAMILIES.map((family) => (
+            <Link
+              key={family.key}
+              href={`/docs?product=api-apps&tag=${family.key}`}
+              className="doc-list-card"
+              style={{ padding: "var(--space-6)" }}
+            >
+              <h3 style={{
+                fontSize: "18px",
+                fontWeight: 600,
+                color: "var(--text-primary)",
+                marginBottom: "var(--space-2)",
+              }}>
+                {family.label}
+              </h3>
+              <p style={{
+                fontSize: "14px",
+                color: "var(--text-secondary)",
+                marginBottom: "var(--space-3)",
+                lineHeight: 1.5,
+              }}>
+                {family.description}
+              </p>
+              <span style={{
+                fontSize: "12px",
+                fontFamily: "var(--font-geist-mono), monospace",
+                color: "var(--text-tertiary)",
+              }}>
+                {familyCounts[family.key] || 0} docs
+              </span>
+            </Link>
+          ))}
+        </div>
+
+        <Link
+          href="/docs"
+          style={{
+            fontSize: "13px",
+            color: "var(--accent-primary)",
+            textDecoration: "none",
+          }}
+        >
+          ← Back to all docs
+        </Link>
+
+        <style>{`
+          .doc-list-card {
+            display: block;
+            padding: var(--space-4);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-primary);
+            text-decoration: none;
+            color: inherit;
+            transition: border-color 0.15s, background 0.15s;
+          }
+          .doc-list-card:hover {
+            border-color: var(--accent-primary);
+            background: var(--bg-surface);
+          }
+        `}</style>
+      </main>
+    );
+  }
+
   // Filtered view — standard list
   if (isFiltered) {
     return (

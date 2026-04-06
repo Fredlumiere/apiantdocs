@@ -240,16 +240,16 @@ export default async function Home() {
                   {PRODUCT_ICONS.cpu}
                 </div>
                 <h3 style={{ fontSize: "16px", fontWeight: 600, color: "var(--text-primary)" }}>
-                  I build automations
+                  I use the Automation Editor
                 </h3>
               </div>
               <p style={{ fontSize: "14px", color: "var(--text-secondary)", marginBottom: "var(--space-4)", lineHeight: 1.5 }}>
-                Learn the automation editor, connect apps, build workflows with triggers, actions, and field mappings.
+                Build workflows with the drag-and-drop editor. Triggers, actions, field mappings, subroutines, forms, and AI chatbots.
               </p>
               <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
-                <span className="persona-tag">Getting started</span>
-                <span className="persona-tag">Key concepts</span>
                 <span className="persona-tag">Automation editor</span>
+                <span className="persona-tag">Key concepts</span>
+                <span className="persona-tag">Triggers &amp; actions</span>
               </div>
             </Link>
 
@@ -264,11 +264,11 @@ export default async function Home() {
                   {PRODUCT_ICONS.terminal}
                 </div>
                 <h3 style={{ fontSize: "16px", fontWeight: 600, color: "var(--text-primary)" }}>
-                  I build integrations
+                  I use the Assembly Editor
                 </h3>
               </div>
               <p style={{ fontSize: "14px", color: "var(--text-secondary)", marginBottom: "var(--space-4)", lineHeight: 1.5 }}>
-                Assembly editor, app connectors, Module IDE, templates, and deployment. Build and publish integration products.
+                Build app connectors, API integrations, and modules. Module IDE, templates, deployment, and the platform SDK.
               </p>
               <div style={{ display: "flex", gap: "var(--space-2)", flexWrap: "wrap" }}>
                 <span className="persona-tag">Assembly editor</span>

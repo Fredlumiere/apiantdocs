@@ -43,6 +43,7 @@ export const APP_FAMILIES: AppFamily[] = [
     label: "CRMConnect",
     description: "Bi-directional CRM sync — client data, visits, purchases, memberships, and more.",
     apps: [
+      { slug: "crmconnect-mindbody-to-highlevel", label: "Mindbody → HighLevel", source: "Mindbody", destination: "HighLevel" },
       { slug: "crmconnect-mindbody-to-hubspot", label: "Mindbody → HubSpot", source: "Mindbody", destination: "HubSpot" },
       { slug: "crmconnect-mindbody-to-activecampaign", label: "Mindbody → ActiveCampaign", source: "Mindbody", destination: "ActiveCampaign" },
       { slug: "crmconnect-mindbody-to-keap", label: "Mindbody → Keap", source: "Mindbody", destination: "Keap" },

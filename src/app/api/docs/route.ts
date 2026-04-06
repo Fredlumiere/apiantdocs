@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
   const product = searchParams.get("product");
   const tag = searchParams.get("tag");
   const status = searchParams.get("status") || "published";
-  const limit = Math.min(parseInt(searchParams.get("limit") || "50"), 100);
+  const limit = Math.min(parseInt(searchParams.get("limit") || "50"), 500);
   const offset = parseInt(searchParams.get("offset") || "0");
 
   let query = supabase

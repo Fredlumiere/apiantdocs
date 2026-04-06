@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase";
-import { requireWriteAccess } from "@/lib/api-auth";
+import { requireWriteAccess, validateSession } from "@/lib/api-auth";
 import { embedDocument } from "@/lib/embeddings";
 import { corsHeaders } from "@/lib/cors";
 
@@ -9,28 +9,75 @@ export async function OPTIONS() {
 }
 
 function extractSlug(slugParts: string[]): { slug: string; action: string | null } {
-  // If last segment is "embed", treat it as an action
-  if (slugParts[slugParts.length - 1] === "embed") {
-    return { slug: slugParts.slice(0, -1).join("/"), action: "embed" };
+  const last = slugParts[slugParts.length - 1];
+  // If last segment is a known action, treat it as an action
+  if (last === "embed" || last === "versions") {
+    return { slug: slugParts.slice(0, -1).join("/"), action: last };
   }
   return { slug: slugParts.join("/"), action: null };
 }
 
-// GET /api/docs/[...slug] — get a single document
+// GET /api/docs/[...slug] — get a single document or versions
+// Public: published only. Authenticated: any status (add ?any_status=true)
 export async function GET(
-  _request: NextRequest,
+  request: NextRequest,
   { params }: { params: Promise<{ slug: string[] }> }
 ) {
   const { slug: slugParts } = await params;
-  const { slug } = extractSlug(slugParts);
+  const { slug, action } = extractSlug(slugParts);
   const supabase = createServerClient();
 
-  const { data, error } = await supabase
+  // GET /api/docs/[slug]/versions — version history (requires auth)
+  if (action === "versions") {
+    const session = await validateSession(request);
+    if (!session) {
+      return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+    }
+
+    // First get doc ID by slug
+    const { data: doc } = await supabase
+      .from("documents")
+      .select("id")
+      .eq("slug", slug)
+      .single();
+
+    if (!doc) {
+      return NextResponse.json({ error: "Document not found" }, { status: 404 });
+    }
+
+    const { data: versions, error } = await supabase
+      .from("doc_versions")
+      .select("id, version, title, changed_by, change_summary, created_at")
+      .eq("document_id", doc.id)
+      .order("version", { ascending: false })
+      .limit(50);
+
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+
+    return NextResponse.json({ data: versions || [] });
+  }
+
+  const { searchParams } = new URL(request.url);
+  const anyStatus = searchParams.get("any_status") === "true";
+
+  let query = supabase
     .from("documents")
-    .select("id, slug, title, description, body, doc_type, product, version, sort_order, parent_id, status, created_at, updated_at, published_at")
-    .eq("slug", slug)
-    .eq("status", "published")
-    .single();
+    .select("id, slug, title, description, body, doc_type, product, tags, version, sort_order, parent_id, status, created_at, updated_at, published_at")
+    .eq("slug", slug);
+
+  // Only allow fetching non-published docs if authenticated
+  if (anyStatus) {
+    const session = await validateSession(request);
+    if (!session) {
+      query = query.eq("status", "published");
+    }
+  } else {
+    query = query.eq("status", "published");
+  }
+
+  const { data, error } = await query.single();
 
   if (error || !data) {
     return NextResponse.json({ error: "Document not found" }, { status: 404 });

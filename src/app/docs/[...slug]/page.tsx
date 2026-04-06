@@ -7,6 +7,7 @@ import { extractHeadings } from "@/lib/extract-headings";
 import { DocNav } from "@/components/doc-nav";
 import { ChildCards } from "@/components/child-cards";
 import { TagList } from "@/components/tag-list";
+import { EditButton } from "@/components/edit-button";
 import { DOC_TYPE_LABELS, PRODUCT_LABELS } from "@/lib/constants";
 import type { Metadata } from "next";
 
@@ -182,15 +183,18 @@ export default async function DocPage({ params }: Props) {
               v{doc.version}
             </span>
           </div>
-          <h1 style={{
-            fontSize: "32px",
-            fontWeight: 700,
-            letterSpacing: "-0.02em",
-            color: "var(--text-primary)",
-            lineHeight: 1.2,
-          }}>
-            {doc.title}
-          </h1>
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "var(--space-4)" }}>
+            <h1 style={{
+              fontSize: "32px",
+              fontWeight: 700,
+              letterSpacing: "-0.02em",
+              color: "var(--text-primary)",
+              lineHeight: 1.2,
+            }}>
+              {doc.title}
+            </h1>
+            <EditButton slug={fullSlug} />
+          </div>
           {doc.description && (
             <p style={{
               marginTop: "var(--space-2)",

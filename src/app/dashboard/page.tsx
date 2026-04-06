@@ -122,6 +122,34 @@ export default async function DashboardPage() {
           }}
         >
           <Link
+            href="/dashboard/docs"
+            style={{
+              display: "block",
+              padding: "var(--space-6)",
+              borderRadius: "var(--radius-lg)",
+              border: "1px solid var(--border-primary)",
+              textDecoration: "none",
+              color: "inherit",
+              transition: "border-color 0.15s, background 0.15s",
+              background: "var(--bg-secondary)",
+            }}
+            onMouseEnter={undefined}
+          >
+            <h2
+              style={{
+                fontSize: "18px",
+                fontWeight: 600,
+                color: "var(--text-primary)",
+                marginBottom: "var(--space-2)",
+              }}
+            >
+              Manage Documents
+            </h2>
+            <p style={{ fontSize: "14px", color: "var(--text-secondary)" }}>
+              View, edit, publish, and archive documentation. Manage all document statuses.
+            </p>
+          </Link>
+          <Link
             href="/dashboard/keys"
             style={{
               display: "block",

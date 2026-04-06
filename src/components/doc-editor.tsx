@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { MarkdownRenderer } from "@/components/markdown-renderer";
+import { RichEditor } from "@/components/rich-editor";
 import { DOC_TYPE_LABELS, PRODUCT_LABELS } from "@/lib/constants";
 
 interface DocData {
@@ -49,7 +49,6 @@ export function DocEditor({ slug }: { slug: string }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
-  const [showPreview, setShowPreview] = useState(true);
   const [versions, setVersions] = useState<DocVersion[]>([]);
   const [showVersions, setShowVersions] = useState(false);
 
@@ -219,20 +218,6 @@ export function DocEditor({ slug }: { slug: string }) {
             </span>
           )}
           <button
-            onClick={() => setShowPreview(!showPreview)}
-            style={{
-              ...toolbarBtnStyle,
-              background: showPreview ? "var(--accent-primary-muted)" : "transparent",
-              color: showPreview ? "var(--accent-primary)" : "var(--text-tertiary)",
-            }}
-            title="Toggle preview"
-          >
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z" />
-              <circle cx="12" cy="12" r="3" />
-            </svg>
-          </button>
-          <button
             onClick={() => setShowVersions(!showVersions)}
             style={{
               ...toolbarBtnStyle,
@@ -280,13 +265,12 @@ export function DocEditor({ slug }: { slug: string }) {
       </div>
 
       <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
-        {/* Editor panel */}
+        {/* Editor panel (metadata + rich editor) */}
         <div style={{
-          flex: showPreview ? "1 1 50%" : "1 1 100%",
+          flex: 1,
           display: "flex",
           flexDirection: "column",
-          overflow: "auto",
-          borderRight: showPreview ? "1px solid var(--border-primary)" : "none",
+          overflow: "hidden",
         }}>
           {/* Metadata fields */}
           <div style={metaFieldsStyle}>
@@ -417,81 +401,13 @@ export function DocEditor({ slug }: { slug: string }) {
             </div>
           </div>
 
-          {/* Markdown textarea */}
-          <textarea
-            value={body}
-            onChange={(e) => setBody(e.target.value)}
-            placeholder="Write markdown content here..."
-            style={{
-              flex: 1,
-              width: "100%",
-              minHeight: "500px",
-              padding: "var(--space-4) var(--space-6)",
-              fontSize: "14px",
-              lineHeight: 1.7,
-              fontFamily: "var(--font-geist-mono), monospace",
-              background: "var(--bg-primary)",
-              color: "var(--text-primary)",
-              border: "none",
-              outline: "none",
-              resize: "none",
-              boxSizing: "border-box",
-            }}
-            spellCheck={false}
+          {/* WYSIWYG Rich Editor */}
+          <RichEditor
+            initialContent={body}
+            onChange={setBody}
+            onSave={() => save()}
           />
         </div>
-
-        {/* Preview panel */}
-        {showPreview && (
-          <div style={{
-            flex: "1 1 50%",
-            overflow: "auto",
-            padding: "var(--space-6)",
-            background: "var(--bg-primary)",
-          }}>
-            <div style={{ marginBottom: "var(--space-4)" }}>
-              <span style={{
-                fontSize: "11px",
-                fontWeight: 600,
-                letterSpacing: "0.08em",
-                textTransform: "uppercase",
-                color: "var(--text-tertiary)",
-                fontFamily: "var(--font-geist-mono), monospace",
-              }}>
-                Preview
-              </span>
-            </div>
-            {title && (
-              <h1 style={{
-                fontSize: "32px",
-                fontWeight: 700,
-                letterSpacing: "-0.02em",
-                color: "var(--text-primary)",
-                lineHeight: 1.2,
-                marginBottom: "var(--space-4)",
-              }}>
-                {title}
-              </h1>
-            )}
-            {description && (
-              <p style={{
-                fontSize: "18px",
-                color: "var(--text-secondary)",
-                lineHeight: 1.5,
-                marginBottom: "var(--space-6)",
-              }}>
-                {description}
-              </p>
-            )}
-            {body ? (
-              <MarkdownRenderer content={body} />
-            ) : (
-              <p style={{ color: "var(--text-tertiary)", fontSize: "14px", fontStyle: "italic" }}>
-                Start writing to see a preview...
-              </p>
-            )}
-          </div>
-        )}
 
         {/* Versions panel */}
         {showVersions && (

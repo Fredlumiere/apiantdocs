@@ -406,8 +406,9 @@ export function RichEditor({ initialContent, onChange, onSave }: RichEditorProps
       }),
       Image.configure({
         HTMLAttributes: {
-          style: "max-width: 100%; height: auto; border-radius: var(--radius-md);",
+          class: "editor-image",
         },
+        allowBase64: false,
       }),
       CodeBlockLowlight.configure({
         lowlight,
@@ -678,6 +679,73 @@ export function RichEditor({ initialContent, onChange, onSave }: RichEditorProps
           <EditorContent editor={editor} />
         </div>
       </div>
+
+      {/* Image resize controls — shown when image is selected */}
+      {editor?.isActive("image") && (
+        <div style={{
+          position: "fixed",
+          bottom: "var(--space-6)",
+          left: "50%",
+          transform: "translateX(-50%)",
+          display: "flex",
+          gap: "var(--space-2)",
+          padding: "var(--space-2) var(--space-3)",
+          background: "var(--bg-secondary)",
+          border: "1px solid var(--border-primary)",
+          borderRadius: "var(--radius-md)",
+          boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
+          zIndex: 50,
+          fontSize: "13px",
+        }}>
+          <span style={{ color: "var(--text-tertiary)", padding: "4px 0" }}>Image size:</span>
+          {[25, 50, 75, 100].map((pct) => (
+            <button
+              key={pct}
+              onClick={() => {
+                const attrs = editor.getAttributes("image");
+                editor.chain().focus().setImage({
+                  src: attrs.src,
+                  alt: attrs.alt,
+                  title: attrs.title,
+                }).run();
+                // Apply width via DOM after render
+                setTimeout(() => {
+                  const selected = document.querySelector(".ProseMirror img.ProseMirror-selectednode, .ProseMirror img:focus") as HTMLImageElement;
+                  if (selected) {
+                    selected.style.width = `${pct}%`;
+                    selected.style.maxWidth = `${pct}%`;
+                  }
+                }, 50);
+              }}
+              style={{
+                padding: "4px 10px",
+                borderRadius: "var(--radius-sm)",
+                border: "1px solid var(--border-primary)",
+                background: "var(--bg-surface)",
+                color: "var(--text-primary)",
+                cursor: "pointer",
+                fontSize: "12px",
+                fontFamily: "var(--font-geist-mono), monospace",
+              }}
+            >
+              {pct}%
+            </button>
+          ))}
+        </div>
+      )}
+
+      <style>{`
+        .editor-image {
+          max-width: 100%;
+          height: auto;
+          border-radius: var(--radius-md);
+          cursor: pointer;
+        }
+        .editor-image.ProseMirror-selectednode {
+          outline: 2px solid var(--accent-primary);
+          outline-offset: 2px;
+        }
+      `}</style>
 
     </div>
   );

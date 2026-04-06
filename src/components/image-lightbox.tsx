@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 
 export function ImageFrame({ src, alt }: { src?: string; alt?: string }) {
   const [open, setOpen] = useState(false);
+  const [isSmall, setIsSmall] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -18,8 +19,23 @@ export function ImageFrame({ src, alt }: { src?: string; alt?: string }) {
 
   return (
     <>
-      <span className="doc-image-frame" onClick={() => setOpen(true)} style={{ cursor: "zoom-in" }}>
-        <img src={src} alt={alt || ""} loading="lazy" />
+      <span
+        className={isSmall ? "doc-image-inline" : "doc-image-frame"}
+        onClick={isSmall ? undefined : () => setOpen(true)}
+        style={isSmall ? undefined : { cursor: "zoom-in" }}
+      >
+        <img
+          src={src}
+          alt={alt || ""}
+          loading="lazy"
+          onLoad={(e) => {
+            const img = e.currentTarget;
+            // Images smaller than 80px in either dimension are icons — render inline
+            if (img.naturalWidth < 80 || img.naturalHeight < 80) {
+              setIsSmall(true);
+            }
+          }}
+        />
       </span>
 
       {open && (
@@ -55,9 +71,27 @@ export function ImageFrame({ src, alt }: { src?: string; alt?: string }) {
           border: 1px solid var(--border-secondary);
           border-radius: var(--radius-md);
           background: var(--bg-secondary);
-          max-width: min(100%, 600px);
+          max-width: 100%;
           height: auto;
           transition: border-color 0.15s;
+        }
+        .doc-image-frame img[width],
+        .doc-image-frame img[style] {
+          /* Respect explicit sizing */
+        }
+        /* Inline/small images (icons, badges) — no frame */
+        .doc-image-inline {
+          display: inline;
+          margin: 0;
+        }
+        .doc-image-inline img {
+          display: inline;
+          border: none;
+          border-radius: 0;
+          background: none;
+          vertical-align: middle;
+          max-height: 1.5em;
+          width: auto;
         }
         .doc-image-frame:hover img {
           border-color: var(--accent-primary);

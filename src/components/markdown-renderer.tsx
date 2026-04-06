@@ -106,6 +106,18 @@ export function MarkdownRenderer({ content }: { content: string }) {
           [rehypeAutolinkHeadings, { behavior: "wrap" }],
         ]}
         components={{
+          a: ({ href, children, ...props }) => {
+            const isExternal = href && (href.startsWith("http") || href.startsWith("//")) && !href.includes("apiantdocs");
+            return (
+              <a
+                href={href}
+                {...(isExternal ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                {...props}
+              >
+                {children}
+              </a>
+            );
+          },
           pre: PreBlock,
           img: ({ src, alt }) => (
             <ImageFrame src={typeof src === "string" ? src : undefined} alt={typeof alt === "string" ? alt : undefined} />

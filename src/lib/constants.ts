@@ -22,12 +22,78 @@ export const PRODUCTS = [
   { key: "mcp", label: "MCP", description: "Model Context Protocol tools", icon: "terminal" },
 ] as const;
 
-// App product families for the apps section
-export const APP_FAMILIES = [
-  { key: "crmconnect", label: "CRMConnect", description: "CRM integrations (Mindbody, Cliniko, DonorPerfect \u2192 HubSpot, ActiveCampaign, etc.)" },
-  { key: "shopconnect", label: "ShopConnect", description: "E-commerce integrations (Shopify \u2192 Mindbody)" },
-  { key: "zoomconnect", label: "ZoomConnect", description: "Video conferencing integrations" },
-  { key: "mailconnect", label: "MailConnect", description: "Email marketing integrations" },
-  { key: "calendarconnect", label: "CalendarConnect", description: "Calendar integrations" },
-  { key: "appconnect", label: "AppConnect", description: "Zapier-compatible connectors" },
-] as const;
+// App product families with their individual apps
+export interface AppProduct {
+  slug: string;
+  label: string;
+  source: string;
+  destination: string;
+}
+
+export interface AppFamily {
+  key: string;
+  label: string;
+  description: string;
+  apps: AppProduct[];
+}
+
+export const APP_FAMILIES: AppFamily[] = [
+  {
+    key: "crmconnect",
+    label: "CRMConnect",
+    description: "Bi-directional CRM sync — client data, visits, purchases, memberships, and more.",
+    apps: [
+      { slug: "crmconnect-mindbody-to-hubspot", label: "Mindbody → HubSpot", source: "Mindbody", destination: "HubSpot" },
+      { slug: "crmconnect-mindbody-to-activecampaign", label: "Mindbody → ActiveCampaign", source: "Mindbody", destination: "ActiveCampaign" },
+      { slug: "crmconnect-mindbody-to-keap", label: "Mindbody → Keap", source: "Mindbody", destination: "Keap" },
+      { slug: "crmconnect-mindbody-to-klaviyo", label: "Mindbody → Klaviyo", source: "Mindbody", destination: "Klaviyo" },
+      { slug: "crmconnect-mindbody-to-zoho-crm", label: "Mindbody → Zoho CRM", source: "Mindbody", destination: "Zoho CRM" },
+      { slug: "crmconnect-cliniko-to-hubspot", label: "Cliniko → HubSpot", source: "Cliniko", destination: "HubSpot" },
+      { slug: "crmconnect-cliniko-to-activecampaign", label: "Cliniko → ActiveCampaign", source: "Cliniko", destination: "ActiveCampaign" },
+      { slug: "crmconnect-cliniko-to-salesforce-cloned", label: "Cliniko → Salesforce", source: "Cliniko", destination: "Salesforce" },
+      { slug: "crmconnect-donorperfect-to-hubspot", label: "DonorPerfect → HubSpot", source: "DonorPerfect", destination: "HubSpot" },
+      { slug: "crmconnect-donorperfect-to-activecampaign", label: "DonorPerfect → ActiveCampaign", source: "DonorPerfect", destination: "ActiveCampaign" },
+      { slug: "crmconnect-donorperfect-to-keap", label: "DonorPerfect → Keap", source: "DonorPerfect", destination: "Keap" },
+    ],
+  },
+  {
+    key: "shopconnect",
+    label: "ShopConnect",
+    description: "E-commerce integrations — sync products, pricing, and orders.",
+    apps: [
+      { slug: "shopconnect-shopify-to-mindbody", label: "Shopify → Mindbody", source: "Shopify", destination: "Mindbody" },
+    ],
+  },
+  {
+    key: "zoomconnect",
+    label: "ZoomConnect",
+    description: "Automated Zoom meeting management — scheduling, recordings, reminders, and attendance.",
+    apps: [
+      { slug: "zoomconnect", label: "ZoomConnect", source: "Zoom", destination: "Mindbody" },
+    ],
+  },
+  {
+    key: "mailconnect",
+    label: "MailConnect",
+    description: "Email marketing sync — contacts, lists, and campaigns.",
+    apps: [
+      { slug: "mailconnect-donorperfect-to-mailchimp", label: "DonorPerfect → Mailchimp", source: "DonorPerfect", destination: "Mailchimp" },
+    ],
+  },
+  {
+    key: "calendarconnect",
+    label: "CalendarConnect",
+    description: "Calendar booking integrations.",
+    apps: [
+      { slug: "calendarconnect-calendly-to-mindbody", label: "Calendly → Mindbody", source: "Calendly", destination: "Mindbody" },
+    ],
+  },
+  {
+    key: "appconnect",
+    label: "AppConnect",
+    description: "Zapier-compatible instant triggers and actions for Mindbody.",
+    apps: [
+      { slug: "appconnect", label: "AppConnect for Zapier", source: "Mindbody", destination: "Zapier" },
+    ],
+  },
+];

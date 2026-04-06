@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import ReactMarkdown from "react-markdown";
 import Link from "next/link";
 
 interface Citation {
@@ -274,10 +275,35 @@ export function ChatPanel() {
               fontSize: "14px",
               lineHeight: 1.6,
               color: msg.error ? "var(--accent-amber)" : "var(--text-primary)",
-              whiteSpace: "pre-wrap",
               wordBreak: "break-word",
-            }}>
-              {msg.content}
+            }}
+            className="chat-markdown"
+            >
+              {msg.error ? (
+                msg.content
+              ) : (
+                <ReactMarkdown
+                  components={{
+                    a: ({ href, children }) => (
+                      <a href={href} style={{ color: "var(--accent-primary)", textDecoration: "none" }} target="_blank" rel="noopener noreferrer">
+                        {children}
+                      </a>
+                    ),
+                    code: ({ children }) => (
+                      <code style={{ background: "var(--bg-tertiary)", padding: "1px 5px", borderRadius: "4px", fontSize: "0.9em" }}>
+                        {children}
+                      </code>
+                    ),
+                    pre: ({ children }) => (
+                      <pre style={{ background: "var(--bg-tertiary)", padding: "var(--space-3)", borderRadius: "var(--radius-md)", overflowX: "auto", fontSize: "13px", margin: "var(--space-2) 0" }}>
+                        {children}
+                      </pre>
+                    ),
+                  }}
+                >
+                  {msg.content}
+                </ReactMarkdown>
+              )}
             </div>
             {msg.citations && msg.citations.length > 0 && (
               <div style={{
@@ -444,6 +470,31 @@ export function ChatPanel() {
         @keyframes chatDots {
           0%, 100% { opacity: 0.4; }
           50% { opacity: 1; }
+        }
+        .chat-markdown h1, .chat-markdown h2, .chat-markdown h3 {
+          font-size: 15px;
+          font-weight: 600;
+          margin: 12px 0 6px 0;
+          color: var(--text-primary);
+        }
+        .chat-markdown h1 { font-size: 16px; }
+        .chat-markdown p { margin: 6px 0; }
+        .chat-markdown ul, .chat-markdown ol {
+          margin: 6px 0;
+          padding-left: 20px;
+        }
+        .chat-markdown li { margin: 3px 0; }
+        .chat-markdown strong { color: var(--text-primary); }
+        .chat-markdown hr {
+          border: none;
+          border-top: 1px solid var(--border-primary);
+          margin: 10px 0;
+        }
+        .chat-markdown blockquote {
+          border-left: 2px solid var(--accent-primary);
+          padding-left: 10px;
+          margin: 6px 0;
+          color: var(--text-secondary);
         }
       `}</style>
     </div>

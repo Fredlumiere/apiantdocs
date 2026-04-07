@@ -402,11 +402,18 @@ export function DocEditor({ slug }: { slug: string }) {
           </div>
 
           {/* WYSIWYG Rich Editor */}
-          <RichEditor
-            initialContent={body}
-            onChange={setBody}
-            onSave={() => save()}
-          />
+          {doc ? (
+            <RichEditor
+              key={doc.id}
+              initialContent={body}
+              onChange={setBody}
+              onSave={() => save()}
+            />
+          ) : (
+            <div style={{ padding: "var(--space-8)", color: "var(--text-tertiary)", textAlign: "center" }}>
+              Loading editor...
+            </div>
+          )}
         </div>
 
         {/* Versions panel */}

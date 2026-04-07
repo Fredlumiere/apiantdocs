@@ -413,7 +413,7 @@ function HighlightIcon() {
 
 // --- Image Resize Bar ---
 
-function ImageResizeBar({ editor }: { editor: ReturnType<typeof useEditor> }) {
+function ImageResizeBar({ editor, onChange }: { editor: ReturnType<typeof useEditor>; onChange: (md: string) => void }) {
   const [selectedImg, setSelectedImg] = useState<HTMLImageElement | null>(null);
 
   useEffect(() => {
@@ -814,7 +814,7 @@ export function RichEditor({ initialContent, onChange, onSave }: RichEditorProps
         </div>
       </div>
 
-      <ImageResizeBar editor={editor} />
+      <ImageResizeBar editor={editor} onChange={onChange} />
 
       <style>{`
         .editor-image {

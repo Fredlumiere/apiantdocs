@@ -103,10 +103,36 @@ export function DocEditor({ slug }: { slug: string }) {
     setSaving(true);
     setSaveMessage(null);
 
+    // Get the latest body from the editor, including any DOM-only image widths.
+    // We can't rely on React state because flushDomWidths may not have propagated yet.
+    let latestBody = body;
+    try {
+      const proseMirror = document.querySelector(".ProseMirror");
+      if (proseMirror) {
+        // Import htmlToMarkdown dynamically to convert editor HTML → markdown
+        const clone = proseMirror.cloneNode(true) as HTMLElement;
+        // The clone has live DOM widths baked in
+        const TurndownService = (await import("turndown")).default;
+        const td = new TurndownService({ headingStyle: "atx", codeBlockStyle: "fenced", bulletListMarker: "-" });
+        td.addRule("imageWithWidth", {
+          filter: (node: HTMLElement) => node.nodeName === "IMG" && !!node.style.width,
+          replacement: (_content: string, node: HTMLElement) => {
+            const src = node.getAttribute("src") || "";
+            const alt = node.getAttribute("alt") || "";
+            const width = node.style.width;
+            return `<img src="${src}" alt="${alt}" style="width: ${width}; height: auto;" />`;
+          },
+        });
+        latestBody = td.turndown(clone.innerHTML);
+      }
+    } catch {
+      // Fall back to React state body
+    }
+
     const payload: Record<string, unknown> = {
       title,
       description: description || null,
-      doc_body: body,
+      doc_body: latestBody,
       doc_type: docType,
       product: product || null,
       tags,
@@ -133,11 +159,12 @@ export function DocEditor({ slug }: { slug: string }) {
       setDoc(d);
       if (newStatus) setStatus(newStatus);
       setChangeSummary("");
-      setSaveMessage({ type: "success", text: `Saved v${d.version}` });
+      setSaveMessage({ type: "success", text: `Saved v${d.version}. Redirecting...` });
 
-      // Clear message after 3s
-      if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-      saveTimeoutRef.current = setTimeout(() => setSaveMessage(null), 3000);
+      // Redirect back to doc page after save
+      setTimeout(() => {
+        router.push(`/docs/${slug}`);
+      }, 500);
     } catch {
       setSaveMessage({ type: "error", text: "Network error" });
     }

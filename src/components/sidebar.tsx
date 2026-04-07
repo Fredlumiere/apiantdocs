@@ -3,9 +3,11 @@ import { SidebarResize } from "@/components/sidebar-resize";
 import type { TreeNode } from "@/components/sidebar-tree";
 
 async function fetchTree(): Promise<TreeNode[]> {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : "http://localhost:3000";
+  // Use relative URL — works on both localhost and Vercel
+  // Next.js server components can fetch relative URLs
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL
+    || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : null)
+    || `http://localhost:${process.env.PORT || 3000}`;
 
   try {
     const res = await fetch(`${baseUrl}/api/docs/tree`, {
@@ -15,7 +17,19 @@ async function fetchTree(): Promise<TreeNode[]> {
     const json = await res.json();
     return json.data || [];
   } catch {
-    return [];
+    // Fallback: fetch directly from Supabase
+    try {
+      const { createServerClient } = await import("@/lib/supabase");
+      const supabase = createServerClient();
+      const { data } = await supabase
+        .from("documents")
+        .select("id, slug, title, doc_type, product, parent_id, sort_order")
+        .eq("status", "published")
+        .order("sort_order", { ascending: true });
+      return (data || []).map((d) => ({ ...d, children: [] }));
+    } catch {
+      return [];
+    }
   }
 }
 

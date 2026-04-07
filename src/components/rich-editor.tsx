@@ -111,6 +111,20 @@ function htmlToMarkdown(html: string): string {
     },
   });
 
+  // Images with width — preserve as HTML img tag so width persists
+  td.addRule("imageWithWidth", {
+    filter: (node) => {
+      return node.nodeName === "IMG" && !!(node as HTMLElement).style.width;
+    },
+    replacement(_content, node) {
+      const el = node as HTMLImageElement;
+      const src = el.getAttribute("src") || "";
+      const alt = el.getAttribute("alt") || "";
+      const width = el.style.width;
+      return `<img src="${src}" alt="${alt}" style="width: ${width}; height: auto;" />`;
+    },
+  });
+
   return td.turndown(html);
 }
 
@@ -428,17 +442,18 @@ function ImageResizeBar({ editor }: { editor: ReturnType<typeof useEditor> }) {
         <button
           key={pct}
           onClick={() => {
-            selectedImg.style.width = `${pct}%`;
-            selectedImg.style.height = "auto";
-            // Trigger editor update so markdown reflects the change
-            editor.commands.focus();
+            const widthVal = `${pct}%`;
+            // Update via Tiptap so it persists in the document model
+            const { src, alt, title } = editor.getAttributes("image");
+            editor.chain().focus().setImage({ src, alt, title, width: widthVal } as Record<string, string>).run();
+            setSelectedImg(null);
           }}
           style={{
             padding: "5px 12px",
             borderRadius: "var(--radius-sm)",
             border: "1px solid var(--border-primary)",
-            background: selectedImg.style.width === `${pct}%` ? "var(--accent-primary-muted)" : "var(--bg-surface)",
-            color: selectedImg.style.width === `${pct}%` ? "var(--accent-primary)" : "var(--text-primary)",
+            background: "var(--bg-surface)",
+            color: "var(--text-primary)",
             cursor: "pointer",
             fontSize: "12px",
             fontWeight: 500,
@@ -481,7 +496,21 @@ export function RichEditor({ initialContent, onChange, onSave }: RichEditorProps
           target: "_blank",
         },
       }),
-      Image.configure({
+      Image.extend({
+        addAttributes() {
+          return {
+            ...this.parent?.(),
+            width: {
+              default: null,
+              parseHTML: (element) => element.getAttribute("width") || element.style.width || null,
+              renderHTML: (attributes) => {
+                if (!attributes.width) return {};
+                return { style: `width: ${attributes.width}; height: auto;` };
+              },
+            },
+          };
+        },
+      }).configure({
         HTMLAttributes: {
           class: "editor-image",
         },

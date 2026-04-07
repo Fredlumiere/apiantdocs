@@ -14,7 +14,7 @@ import Highlight from "@tiptap/extension-highlight";
 import TextAlign from "@tiptap/extension-text-align";
 import Underline from "@tiptap/extension-underline";
 import { common, createLowlight } from "lowlight";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import TurndownService from "turndown";
 import Showdown from "showdown";
 
@@ -375,6 +375,83 @@ function HighlightIcon() {
   );
 }
 
+// --- Image Resize Bar ---
+
+function ImageResizeBar({ editor }: { editor: ReturnType<typeof useEditor> }) {
+  const [selectedImg, setSelectedImg] = useState<HTMLImageElement | null>(null);
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      const target = e.target as HTMLElement;
+      if (target.tagName === "IMG" && target.closest(".ProseMirror")) {
+        setSelectedImg(target as HTMLImageElement);
+      } else if (!target.closest(".image-resize-bar")) {
+        setSelectedImg(null);
+      }
+    }
+    document.addEventListener("click", handleClick);
+    return () => document.removeEventListener("click", handleClick);
+  }, []);
+
+  if (!selectedImg || !editor) return null;
+
+  const sizes = [
+    { label: "Small", pct: 25 },
+    { label: "Medium", pct: 50 },
+    { label: "Large", pct: 75 },
+    { label: "Full", pct: 100 },
+  ];
+
+  return (
+    <div
+      className="image-resize-bar"
+      style={{
+        position: "fixed",
+        bottom: "var(--space-6)",
+        left: "50%",
+        transform: "translateX(-50%)",
+        display: "flex",
+        alignItems: "center",
+        gap: "var(--space-2)",
+        padding: "var(--space-2) var(--space-4)",
+        background: "var(--bg-secondary)",
+        border: "1px solid var(--border-primary)",
+        borderRadius: "var(--radius-lg)",
+        boxShadow: "0 4px 16px rgba(0,0,0,0.4)",
+        zIndex: 50,
+      }}
+    >
+      <span style={{ fontSize: "12px", color: "var(--text-tertiary)", marginRight: "var(--space-1)" }}>
+        Resize:
+      </span>
+      {sizes.map(({ label, pct }) => (
+        <button
+          key={pct}
+          onClick={() => {
+            selectedImg.style.width = `${pct}%`;
+            selectedImg.style.height = "auto";
+            // Trigger editor update so markdown reflects the change
+            editor.commands.focus();
+          }}
+          style={{
+            padding: "5px 12px",
+            borderRadius: "var(--radius-sm)",
+            border: "1px solid var(--border-primary)",
+            background: selectedImg.style.width === `${pct}%` ? "var(--accent-primary-muted)" : "var(--bg-surface)",
+            color: selectedImg.style.width === `${pct}%` ? "var(--accent-primary)" : "var(--text-primary)",
+            cursor: "pointer",
+            fontSize: "12px",
+            fontWeight: 500,
+            transition: "all 0.1s",
+          }}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 // --- Main Editor Component ---
 
 interface RichEditorProps {
@@ -680,59 +757,7 @@ export function RichEditor({ initialContent, onChange, onSave }: RichEditorProps
         </div>
       </div>
 
-      {/* Image resize controls — shown when image is selected */}
-      {editor?.isActive("image") && (
-        <div style={{
-          position: "fixed",
-          bottom: "var(--space-6)",
-          left: "50%",
-          transform: "translateX(-50%)",
-          display: "flex",
-          gap: "var(--space-2)",
-          padding: "var(--space-2) var(--space-3)",
-          background: "var(--bg-secondary)",
-          border: "1px solid var(--border-primary)",
-          borderRadius: "var(--radius-md)",
-          boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
-          zIndex: 50,
-          fontSize: "13px",
-        }}>
-          <span style={{ color: "var(--text-tertiary)", padding: "4px 0" }}>Image size:</span>
-          {[25, 50, 75, 100].map((pct) => (
-            <button
-              key={pct}
-              onClick={() => {
-                const attrs = editor.getAttributes("image");
-                editor.chain().focus().setImage({
-                  src: attrs.src,
-                  alt: attrs.alt,
-                  title: attrs.title,
-                }).run();
-                // Apply width via DOM after render
-                setTimeout(() => {
-                  const selected = document.querySelector(".ProseMirror img.ProseMirror-selectednode, .ProseMirror img:focus") as HTMLImageElement;
-                  if (selected) {
-                    selected.style.width = `${pct}%`;
-                    selected.style.maxWidth = `${pct}%`;
-                  }
-                }, 50);
-              }}
-              style={{
-                padding: "4px 10px",
-                borderRadius: "var(--radius-sm)",
-                border: "1px solid var(--border-primary)",
-                background: "var(--bg-surface)",
-                color: "var(--text-primary)",
-                cursor: "pointer",
-                fontSize: "12px",
-                fontFamily: "var(--font-geist-mono), monospace",
-              }}
-            >
-              {pct}%
-            </button>
-          ))}
-        </div>
-      )}
+      <ImageResizeBar editor={editor} />
 
       <style>{`
         .editor-image {

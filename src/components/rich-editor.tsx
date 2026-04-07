@@ -31,10 +31,30 @@ const showdownConverter = new Showdown.Converter({
   openLinksInNewWindow: false,
   literalMidWordUnderscores: true,
   simplifiedAutoLink: true,
+  parseImgDimensions: true,
+  backslashEscapesHTMLTags: false,
 });
 
 function markdownToHtml(md: string): string {
-  return showdownConverter.makeHtml(md);
+  // Showdown may strip style attributes from HTML img tags.
+  // Pre-process: temporarily protect <img> tags with style attributes.
+  let processed = md;
+  const imgMap: Record<string, string> = {};
+  let idx = 0;
+  processed = processed.replace(/<img\s[^>]*style="[^"]*"[^>]*\/?>/gi, (match) => {
+    const key = `__IMG_PRESERVE_${idx++}__`;
+    imgMap[key] = match;
+    return key;
+  });
+
+  let html = showdownConverter.makeHtml(processed);
+
+  // Restore preserved img tags
+  for (const [key, original] of Object.entries(imgMap)) {
+    html = html.replace(key, original);
+  }
+
+  return html;
 }
 
 function htmlToMarkdown(html: string): string {
@@ -443,10 +463,11 @@ function ImageResizeBar({ editor }: { editor: ReturnType<typeof useEditor> }) {
           key={pct}
           onClick={() => {
             const widthVal = `${pct}%`;
-            // Update via Tiptap so it persists in the document model
-            const { src, alt, title } = editor.getAttributes("image");
-            editor.chain().focus().setImage({ src, alt, title, width: widthVal } as Record<string, string>).run();
-            setSelectedImg(null);
+            // Update the image node's attributes in place
+            editor.chain().focus().updateAttributes("image", { width: widthVal }).run();
+            // Also update DOM immediately for visual feedback
+            selectedImg.style.width = widthVal;
+            selectedImg.style.height = "auto";
           }}
           style={{
             padding: "5px 12px",

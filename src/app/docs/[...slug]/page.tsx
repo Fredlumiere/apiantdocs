@@ -115,6 +115,11 @@ export default async function DocPage({ params }: Props) {
     .replace(/<LinkArrayItem[\s\S]*?\/>/gi, "")
     .replace(/<Image[\s\S]*?(?:\/>|<\/Image>)/gi, "")
     .replace(/<Callout[\s\S]*?<\/Callout>/gi, "")
+    .replace(/<hint\s+style="(\w+)">([\s\S]*?)<\/hint>/gi, (_m, type, content) => {
+      const labels: Record<string, string> = { info: "Info", warning: "Warning", danger: "Danger", tip: "Tip", success: "Tip" };
+      return `> **${labels[type] || "Note"}:** ${content.trim()}\n`;
+    })
+    .replace(/<hint[^>]*>([\s\S]*?)<\/hint>/gi, (_m, content) => `> ${content.trim()}\n`)
     .trim();
 
   // Extract headings server-side for TOC

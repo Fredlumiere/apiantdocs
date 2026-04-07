@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 
-export function ImageFrame({ src, alt }: { src?: string; alt?: string }) {
+export function ImageFrame({ src, alt, width }: { src?: string; alt?: string; width?: string }) {
   const [open, setOpen] = useState(false);
   const [isSmall, setIsSmall] = useState(false);
 
@@ -28,9 +28,9 @@ export function ImageFrame({ src, alt }: { src?: string; alt?: string }) {
           src={src}
           alt={alt || ""}
           loading="lazy"
+          style={width ? { width, height: "auto" } : undefined}
           onLoad={(e) => {
             const img = e.currentTarget;
-            // Images smaller than 80px in either dimension are icons — render inline
             if (img.naturalWidth < 80 || img.naturalHeight < 80) {
               setIsSmall(true);
             }

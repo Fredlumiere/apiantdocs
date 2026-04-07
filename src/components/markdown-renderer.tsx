@@ -119,8 +119,18 @@ export function MarkdownRenderer({ content }: { content: string }) {
             );
           },
           pre: PreBlock,
-          img: ({ src, alt }) => (
-            <ImageFrame src={typeof src === "string" ? src : undefined} alt={typeof alt === "string" ? alt : undefined} />
+          img: ({ src, alt, style, width, ...rest }) => {
+            // Extract width from style string or width attribute
+            let w: string | undefined;
+            if (typeof style === "object" && style && "width" in style) {
+              w = (style as Record<string, string>).width;
+            } else if (typeof (rest as Record<string, unknown>).style === "string") {
+              const match = ((rest as Record<string, unknown>).style as string).match(/width:\s*([^;]+)/);
+              if (match) w = match[1].trim();
+            }
+            if (typeof width === "string" || typeof width === "number") w = String(width);
+            return <ImageFrame src={typeof src === "string" ? src : undefined} alt={typeof alt === "string" ? alt : undefined} width={w} />;
+          }
           ),
           table: ({ children, ...props }) => (
             <div style={{ overflowX: "auto", marginBottom: "var(--space-4)" }}>

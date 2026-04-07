@@ -47,7 +47,7 @@ export async function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
 
   // Protect /dashboard and /edit routes
-  const isProtected = pathname.startsWith("/dashboard") || pathname.startsWith("/edit/");
+  const isProtected = pathname.startsWith("/dashboard");
   if (isProtected) {
     if (!user) {
       const loginUrl = new URL("/login", request.url);

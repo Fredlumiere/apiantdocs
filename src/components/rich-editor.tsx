@@ -467,18 +467,35 @@ function ImageResizeBar({ editor }: { editor: ReturnType<typeof useEditor> }) {
             e.preventDefault();
             e.stopPropagation();
             const widthVal = `${pct}%`;
+            const imgSrc = selectedImg.getAttribute("src") || "";
 
-            // Simple approach: modify the DOM, then tell editor to re-read content
-            selectedImg.style.width = widthVal;
-            selectedImg.style.height = "auto";
-            selectedImg.setAttribute("data-width", widthVal);
+            // Find the image node position
+            const { state, view } = editor;
+            let targetPos = -1;
+            state.doc.descendants((node, pos) => {
+              if (targetPos >= 0) return false;
+              if (node.type.name === "image" && node.attrs.src === imgSrc) {
+                targetPos = pos;
+                return false;
+              }
+            });
 
-            // Re-read the full HTML into the editor to sync state
-            // Use a microtask so the DOM change is reflected
-            setTimeout(() => {
-              const html = editor.getHTML();
-              editor.commands.setContent(html, false);
-            }, 10);
+            if (targetPos >= 0) {
+              // Use setNodeAttribute (single attribute change, doesn't replace node)
+              try {
+                const tr = state.tr;
+                (tr as unknown as { setNodeAttribute: (pos: number, attr: string, value: string) => unknown }).setNodeAttribute(targetPos, "width", widthVal);
+                view.dispatch(tr);
+              } catch {
+                // Fallback: setNodeMarkup with all existing attrs preserved
+                const node = state.doc.nodeAt(targetPos);
+                if (node) {
+                  const newAttrs = { ...node.attrs, width: widthVal };
+                  const tr = state.tr.setNodeMarkup(targetPos, node.type, newAttrs, node.marks);
+                  view.dispatch(tr);
+                }
+              }
+            }
           }}
           style={{
             padding: "5px 12px",

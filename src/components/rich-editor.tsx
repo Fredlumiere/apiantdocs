@@ -712,9 +712,7 @@ export function RichEditor({ initialContent, onChange, onSave }: RichEditorProps
     (alt: string, width: string) => {
       if (!imageDialog) return;
 
-      // Only modify the DOM — no onChange, no setContent, no re-renders.
-      // The width will be captured by onUpdate when user makes any other edit,
-      // or by the save flow which reads the live DOM.
+      // 1. Modify the DOM image directly (visual change — stays visible)
       const proseMirror = document.querySelector(".ProseMirror");
       if (proseMirror) {
         const img = proseMirror.querySelector(`img[src="${CSS.escape(imageDialog.src)}"]`) as HTMLImageElement;
@@ -730,9 +728,16 @@ export function RichEditor({ initialContent, onChange, onSave }: RichEditorProps
         }
       }
 
+      // 2. Update the parent's body state with the width baked in.
+      //    Use a small delay so the DOM change is applied first,
+      //    then read from editor HTML + merge DOM widths.
+      setTimeout(() => {
+        flushDomWidths();
+      }, 100);
+
       setImageDialog(null);
     },
-    [imageDialog],
+    [imageDialog, flushDomWidths],
   );
 
   // Update editor content when initialContent changes externally (e.g., loading a doc)

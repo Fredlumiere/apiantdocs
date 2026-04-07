@@ -413,7 +413,7 @@ function HighlightIcon() {
 
 // --- Image Resize Bar ---
 
-function ImageResizeBar({ editor, onChange }: { editor: ReturnType<typeof useEditor>; onChange: (md: string) => void }) {
+function ImageResizeBar({ editor }: { editor: ReturnType<typeof useEditor> }) {
   const [selectedImg, setSelectedImg] = useState<HTMLImageElement | null>(null);
 
   useEffect(() => {
@@ -432,9 +432,9 @@ function ImageResizeBar({ editor, onChange }: { editor: ReturnType<typeof useEdi
   if (!selectedImg || !editor) return null;
 
   const sizes = [
-    { label: "Small", pct: 25 },
-    { label: "Medium", pct: 50 },
-    { label: "Large", pct: 75 },
+    { label: "S", pct: 25 },
+    { label: "M", pct: 50 },
+    { label: "L", pct: 75 },
     { label: "Full", pct: 100 },
   ];
 
@@ -466,29 +466,9 @@ function ImageResizeBar({ editor, onChange }: { editor: ReturnType<typeof useEdi
           onMouseDown={(e) => {
             e.preventDefault();
             e.stopPropagation();
-            const widthVal = `${pct}%`;
-
-            // 1. Apply visually
-            selectedImg.style.width = widthVal;
+            // Visual-only resize. Persisted when user saves via getMarkdown().
+            selectedImg.style.width = `${pct}%`;
             selectedImg.style.height = "auto";
-            selectedImg.setAttribute("data-resize-width", widthVal);
-
-            // 2. Trigger onChange with the updated markdown
-            //    Read current HTML, inject the width, convert to markdown
-            const editorEl = document.querySelector(".ProseMirror");
-            if (editorEl) {
-              const clone = editorEl.cloneNode(true) as HTMLElement;
-              // Apply all pending resizes to the clone
-              clone.querySelectorAll("img").forEach((img) => {
-                const rw = (document.querySelector(`.ProseMirror img[src="${CSS.escape(img.getAttribute("src") || "")}"][data-resize-width]`) as HTMLElement)?.getAttribute("data-resize-width");
-                if (rw) {
-                  img.style.width = rw;
-                  img.style.height = "auto";
-                }
-              });
-              const md = htmlToMarkdown(clone.innerHTML);
-              onChange(md);
-            }
           }}
           style={{
             padding: "5px 12px",
@@ -566,8 +546,21 @@ export function RichEditor({ initialContent, onChange, onSave }: RichEditorProps
     content: initialHtml.current,
     onUpdate: ({ editor: ed }) => {
       if (isUpdatingRef.current) return;
+      // Get HTML from Tiptap, then merge any DOM-only image widths
       const html = ed.getHTML();
-      const md = htmlToMarkdown(html);
+      const container = document.createElement("div");
+      container.innerHTML = html;
+      // Check live DOM for resized images and inject their widths into the HTML copy
+      const liveImgs = document.querySelectorAll(".ProseMirror img");
+      const htmlImgs = container.querySelectorAll("img");
+      liveImgs.forEach((liveImg, i) => {
+        const w = (liveImg as HTMLElement).style.width;
+        if (w && htmlImgs[i]) {
+          (htmlImgs[i] as HTMLElement).style.width = w;
+          (htmlImgs[i] as HTMLElement).style.height = "auto";
+        }
+      });
+      const md = htmlToMarkdown(container.innerHTML);
       onChange(md);
     },
     editorProps: {
@@ -814,7 +807,7 @@ export function RichEditor({ initialContent, onChange, onSave }: RichEditorProps
         </div>
       </div>
 
-      <ImageResizeBar editor={editor} onChange={onChange} />
+      <ImageResizeBar editor={editor} />
 
       <style>{`
         .editor-image {

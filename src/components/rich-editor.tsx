@@ -690,32 +690,38 @@ export function RichEditor({ initialContent, onChange, onSave }: RichEditorProps
   const handleImageApply = useCallback(
     (alt: string, width: string) => {
       if (!imageDialog || !editor) return;
-      const currentHtml = editor.getHTML();
-      const container = document.createElement("div");
-      container.innerHTML = currentHtml;
 
-      // Find the image by src and update it
-      const img = container.querySelector(`img[src="${CSS.escape(imageDialog.src)}"]`);
-      if (img) {
-        img.setAttribute("alt", alt);
-        if (width && width !== "100%") {
-          (img as HTMLElement).style.width = width;
-          (img as HTMLElement).style.height = "auto";
-        } else {
-          (img as HTMLElement).style.removeProperty("width");
-          (img as HTMLElement).style.removeProperty("height");
+      // 1. Update the DOM image directly (visual change)
+      const proseMirror = document.querySelector(".ProseMirror");
+      if (proseMirror) {
+        const img = proseMirror.querySelector(`img[src="${CSS.escape(imageDialog.src)}"]`) as HTMLImageElement;
+        if (img) {
+          img.alt = alt;
+          if (width && width !== "100%") {
+            img.style.width = width;
+            img.style.height = "auto";
+          } else {
+            img.style.removeProperty("width");
+            img.style.removeProperty("height");
+          }
         }
       }
 
-      // Set modified HTML back into editor atomically
-      isUpdatingRef.current = true;
-      editor.commands.setContent(container.innerHTML, { emitUpdate: false });
-      isUpdatingRef.current = false;
+      // 2. Update the markdown for saving — modify the raw markdown string
+      //    Replace the image reference in the current body
+      const currentMd = htmlToMarkdown(editor.getHTML());
+      const src = imageDialog.src;
+      let newMd = currentMd;
 
-      // Convert to markdown and notify parent
-      const md = htmlToMarkdown(container.innerHTML);
-      onChange(md);
+      if (width && width !== "100%") {
+        // Replace markdown image with HTML img tag that has width
+        const mdPattern = new RegExp(`!\\[([^\\]]*)\\]\\(${src.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\)`, 'g');
+        const htmlPattern = new RegExp(`<img[^>]*src="${src.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"[^>]*\\/?>`, 'g');
+        const replacement = `<img src="${src}" alt="${alt}" style="width: ${width}; height: auto;" />`;
+        newMd = newMd.replace(mdPattern, replacement).replace(htmlPattern, replacement);
+      }
 
+      onChange(newMd);
       setImageDialog(null);
     },
     [imageDialog, editor, onChange],

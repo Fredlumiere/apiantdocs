@@ -36,22 +36,25 @@ const showdownConverter = new Showdown.Converter({
 });
 
 function markdownToHtml(md: string): string {
-  // Showdown may strip style attributes from HTML img tags.
-  // Pre-process: temporarily protect <img> tags with style attributes.
+  // Showdown strips style attributes from HTML img tags and interprets
+  // double-underscore placeholders as bold. Use HTML comments as placeholders.
   let processed = md;
   const imgMap: Record<string, string> = {};
   let idx = 0;
   processed = processed.replace(/<img\s[^>]*style="[^"]*"[^>]*\/?>/gi, (match) => {
-    const key = `__IMG_PRESERVE_${idx++}__`;
+    const key = `IMGHOLD${idx++}IMGHOLD`;
     imgMap[key] = match;
-    return key;
+    // Wrap in a div so Showdown treats it as a block-level HTML element and passes through
+    return `<div data-imghold="${key}"></div>`;
   });
 
   let html = showdownConverter.makeHtml(processed);
 
   // Restore preserved img tags
   for (const [key, original] of Object.entries(imgMap)) {
-    html = html.replace(key, original);
+    html = html.replace(`<div data-imghold="${key}"></div>`, original);
+    // Fallback: Showdown might wrap it
+    html = html.replace(new RegExp(`<[^>]*data-imghold="${key}"[^>]*>[^<]*</[^>]*>`, 'g'), original);
   }
 
   return html;

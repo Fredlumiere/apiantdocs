@@ -467,34 +467,27 @@ function ImageResizeBar({ editor }: { editor: ReturnType<typeof useEditor> }) {
             e.preventDefault();
             e.stopPropagation();
             const widthVal = `${pct}%`;
-            const imgSrc = selectedImg.getAttribute("src") || "";
 
-            // Find the image node position
-            const { state, view } = editor;
-            let targetPos = -1;
-            state.doc.descendants((node, pos) => {
-              if (targetPos >= 0) return false;
-              if (node.type.name === "image" && node.attrs.src === imgSrc) {
-                targetPos = pos;
-                return false;
-              }
-            });
+            // 1. Apply visually
+            selectedImg.style.width = widthVal;
+            selectedImg.style.height = "auto";
+            selectedImg.setAttribute("data-resize-width", widthVal);
 
-            if (targetPos >= 0) {
-              // Use setNodeAttribute (single attribute change, doesn't replace node)
-              try {
-                const tr = state.tr;
-                (tr as unknown as { setNodeAttribute: (pos: number, attr: string, value: string) => unknown }).setNodeAttribute(targetPos, "width", widthVal);
-                view.dispatch(tr);
-              } catch {
-                // Fallback: setNodeMarkup with all existing attrs preserved
-                const node = state.doc.nodeAt(targetPos);
-                if (node) {
-                  const newAttrs = { ...node.attrs, width: widthVal };
-                  const tr = state.tr.setNodeMarkup(targetPos, node.type, newAttrs, node.marks);
-                  view.dispatch(tr);
+            // 2. Trigger onChange with the updated markdown
+            //    Read current HTML, inject the width, convert to markdown
+            const editorEl = document.querySelector(".ProseMirror");
+            if (editorEl) {
+              const clone = editorEl.cloneNode(true) as HTMLElement;
+              // Apply all pending resizes to the clone
+              clone.querySelectorAll("img").forEach((img) => {
+                const rw = (document.querySelector(`.ProseMirror img[src="${CSS.escape(img.getAttribute("src") || "")}"][data-resize-width]`) as HTMLElement)?.getAttribute("data-resize-width");
+                if (rw) {
+                  img.style.width = rw;
+                  img.style.height = "auto";
                 }
-              }
+              });
+              const md = htmlToMarkdown(clone.innerHTML);
+              onChange(md);
             }
           }}
           style={{
@@ -545,29 +538,7 @@ export function RichEditor({ initialContent, onChange, onSave }: RichEditorProps
           target: "_blank",
         },
       }),
-      Image.extend({
-        addAttributes() {
-          return {
-            ...this.parent?.(),
-            width: {
-              default: null,
-              parseHTML: (element) => {
-                return element.style?.width
-                  || element.getAttribute("data-width")
-                  || element.getAttribute("width")
-                  || null;
-              },
-              renderHTML: (attributes) => {
-                if (!attributes.width) return {};
-                return {
-                  style: `width: ${attributes.width}; height: auto;`,
-                  "data-width": attributes.width,
-                };
-              },
-            },
-          };
-        },
-      }).configure({
+      Image.configure({
         HTMLAttributes: {
           class: "editor-image",
         },

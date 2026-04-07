@@ -578,6 +578,25 @@ export function RichEditor({ initialContent, onChange, onSave }: RichEditorProps
   const isUpdatingRef = useRef(false);
   const initialHtml = useRef(markdownToHtml(initialContent));
   const [imageDialog, setImageDialog] = useState<{ src: string; alt: string; width: string } | null>(null);
+  // Flush any DOM-only image widths into the markdown state
+  const flushDomWidths = useCallback(() => {
+    const ed = editorRef?.current;
+    if (!ed) return;
+    const html = ed.getHTML();
+    const container = document.createElement("div");
+    container.innerHTML = html;
+    const liveImgs = document.querySelectorAll(".ProseMirror img");
+    const htmlImgs = container.querySelectorAll("img");
+    liveImgs.forEach((liveImg, i) => {
+      const w = (liveImg as HTMLElement).style.width;
+      if (w && htmlImgs[i]) {
+        (htmlImgs[i] as HTMLElement).style.width = w;
+        (htmlImgs[i] as HTMLElement).style.height = "auto";
+      }
+    });
+    const md = htmlToMarkdown(container.innerHTML);
+    onChange(md);
+  }, [onChange]);
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -647,7 +666,9 @@ export function RichEditor({ initialContent, onChange, onSave }: RichEditorProps
         // Cmd+S to save
         if ((event.metaKey || event.ctrlKey) && event.key === "s") {
           event.preventDefault();
-          onSave?.();
+          flushDomWidths();
+          // Small delay so onChange propagates before save
+          setTimeout(() => onSave?.(), 50);
           return true;
         }
         // Cmd+K to insert link
@@ -689,9 +710,11 @@ export function RichEditor({ initialContent, onChange, onSave }: RichEditorProps
 
   const handleImageApply = useCallback(
     (alt: string, width: string) => {
-      if (!imageDialog || !editor) return;
+      if (!imageDialog) return;
 
-      // 1. Update the DOM image directly (visual change)
+      // Only modify the DOM — no onChange, no setContent, no re-renders.
+      // The width will be captured by onUpdate when user makes any other edit,
+      // or by the save flow which reads the live DOM.
       const proseMirror = document.querySelector(".ProseMirror");
       if (proseMirror) {
         const img = proseMirror.querySelector(`img[src="${CSS.escape(imageDialog.src)}"]`) as HTMLImageElement;
@@ -707,24 +730,9 @@ export function RichEditor({ initialContent, onChange, onSave }: RichEditorProps
         }
       }
 
-      // 2. Update the markdown for saving — modify the raw markdown string
-      //    Replace the image reference in the current body
-      const currentMd = htmlToMarkdown(editor.getHTML());
-      const src = imageDialog.src;
-      let newMd = currentMd;
-
-      if (width && width !== "100%") {
-        // Replace markdown image with HTML img tag that has width
-        const mdPattern = new RegExp(`!\\[([^\\]]*)\\]\\(${src.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\)`, 'g');
-        const htmlPattern = new RegExp(`<img[^>]*src="${src.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"[^>]*\\/?>`, 'g');
-        const replacement = `<img src="${src}" alt="${alt}" style="width: ${width}; height: auto;" />`;
-        newMd = newMd.replace(mdPattern, replacement).replace(htmlPattern, replacement);
-      }
-
-      onChange(newMd);
       setImageDialog(null);
     },
-    [imageDialog, editor, onChange],
+    [imageDialog],
   );
 
   // Update editor content when initialContent changes externally (e.g., loading a doc)

@@ -465,33 +465,51 @@ function ImageResizeBar({ editor }: { editor: ReturnType<typeof useEditor> }) {
             e.preventDefault();
             e.stopPropagation();
             const widthVal = `${pct}%`;
+            const imgSrc = selectedImg.getAttribute("src");
 
-            // Find this image's position in the ProseMirror document
+            // Find this image node's position in the ProseMirror document.
+            // We match by src and use the DOM element to resolve ambiguity
+            // when multiple images share the same src.
             const { state, view } = editor;
             let imagePos = -1;
             state.doc.descendants((node, pos) => {
-              if (node.type.name === "image") {
-                // Match by src attribute
-                const nodeSrc = node.attrs.src;
-                if (nodeSrc === selectedImg.getAttribute("src")) {
+              if (imagePos >= 0) return false; // already found, skip subtrees
+              if (node.type.name === "image" && node.attrs.src === imgSrc) {
+                // Verify this is the correct DOM element by checking the
+                // actual DOM node at this position
+                const domNode = view.nodeDOM(pos);
+                if (domNode === selectedImg || domNode?.firstChild === selectedImg) {
                   imagePos = pos;
-                  return false; // stop
+                  return false;
+                }
+                // Fallback: if DOM check fails, use first match by src
+                if (imagePos < 0) {
+                  imagePos = pos;
                 }
               }
             });
 
             if (imagePos >= 0) {
-              // Create a transaction to update the node's width attribute
-              const tr = state.tr.setNodeMarkup(imagePos, undefined, {
-                ...state.doc.nodeAt(imagePos)?.attrs,
-                width: widthVal,
-              });
-              view.dispatch(tr);
-            }
+              const node = state.doc.nodeAt(imagePos);
+              if (node) {
+                const tr = state.tr.setNodeMarkup(imagePos, undefined, {
+                  ...node.attrs,
+                  width: widthVal,
+                });
+                view.dispatch(tr);
 
-            // Also update DOM for immediate visual feedback
-            selectedImg.style.width = widthVal;
-            selectedImg.style.height = "auto";
+                // After dispatch, ProseMirror replaces the DOM node.
+                // Find the new DOM element and update selectedImg ref
+                // so subsequent resize clicks still work.
+                const newDom = view.nodeDOM(imagePos);
+                const newImg = newDom instanceof HTMLImageElement
+                  ? newDom
+                  : (newDom as HTMLElement)?.querySelector?.("img");
+                if (newImg) {
+                  setSelectedImg(newImg as HTMLImageElement);
+                }
+              }
+            }
           }}
           style={{
             padding: "5px 12px",
@@ -547,7 +565,14 @@ export function RichEditor({ initialContent, onChange, onSave }: RichEditorProps
             ...this.parent?.(),
             width: {
               default: null,
-              parseHTML: (element) => element.getAttribute("width") || element.style.width || null,
+              parseHTML: (element) => {
+                // Check style.width first since that's what renderHTML outputs
+                const styleWidth = element.style?.width;
+                if (styleWidth) return styleWidth;
+                const attrWidth = element.getAttribute("width");
+                if (attrWidth) return attrWidth;
+                return null;
+              },
               renderHTML: (attributes) => {
                 if (!attributes.width) return {};
                 return { style: `width: ${attributes.width}; height: auto;` };

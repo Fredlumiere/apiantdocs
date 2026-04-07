@@ -580,6 +580,7 @@ export function RichEditor({ initialContent, onChange, onSave }: RichEditorProps
   const [imageDialog, setImageDialog] = useState<{ src: string; alt: string; width: string } | null>(null);
 
   const editor = useEditor({
+    immediatelyRender: false,
     extensions: [
       StarterKit.configure({
         codeBlock: false, // we use CodeBlockLowlight instead

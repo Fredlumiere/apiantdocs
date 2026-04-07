@@ -461,11 +461,35 @@ function ImageResizeBar({ editor }: { editor: ReturnType<typeof useEditor> }) {
       {sizes.map(({ label, pct }) => (
         <button
           key={pct}
-          onClick={() => {
+          onMouseDown={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
             const widthVal = `${pct}%`;
-            // Update the image node's attributes in place
-            editor.chain().focus().updateAttributes("image", { width: widthVal }).run();
-            // Also update DOM immediately for visual feedback
+
+            // Find this image's position in the ProseMirror document
+            const { state, view } = editor;
+            let imagePos = -1;
+            state.doc.descendants((node, pos) => {
+              if (node.type.name === "image") {
+                // Match by src attribute
+                const nodeSrc = node.attrs.src;
+                if (nodeSrc === selectedImg.getAttribute("src")) {
+                  imagePos = pos;
+                  return false; // stop
+                }
+              }
+            });
+
+            if (imagePos >= 0) {
+              // Create a transaction to update the node's width attribute
+              const tr = state.tr.setNodeMarkup(imagePos, undefined, {
+                ...state.doc.nodeAt(imagePos)?.attrs,
+                width: widthVal,
+              });
+              view.dispatch(tr);
+            }
+
+            // Also update DOM for immediate visual feedback
             selectedImg.style.width = widthVal;
             selectedImg.style.height = "auto";
           }}

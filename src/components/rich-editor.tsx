@@ -411,80 +411,157 @@ function HighlightIcon() {
   );
 }
 
-// --- Image Resize Bar ---
+// --- Image Properties Dialog ---
 
-function ImageResizeBar({ editor }: { editor: ReturnType<typeof useEditor> }) {
-  const [selectedImg, setSelectedImg] = useState<HTMLImageElement | null>(null);
-
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      const target = e.target as HTMLElement;
-      if (target.tagName === "IMG" && target.closest(".ProseMirror")) {
-        setSelectedImg(target as HTMLImageElement);
-      } else if (!target.closest(".image-resize-bar")) {
-        setSelectedImg(null);
-      }
-    }
-    document.addEventListener("click", handleClick);
-    return () => document.removeEventListener("click", handleClick);
-  }, []);
-
-  if (!selectedImg || !editor) return null;
-
-  const sizes = [
-    { label: "S", pct: 25 },
-    { label: "M", pct: 50 },
-    { label: "L", pct: 75 },
-    { label: "Full", pct: 100 },
-  ];
+function ImagePropertiesDialog({
+  src,
+  alt,
+  currentWidth,
+  onApply,
+  onClose,
+}: {
+  src: string;
+  alt: string;
+  currentWidth: string;
+  onApply: (alt: string, width: string) => void;
+  onClose: () => void;
+}) {
+  const [editAlt, setEditAlt] = useState(alt);
+  const [editWidth, setEditWidth] = useState(currentWidth || "100%");
 
   return (
     <div
-      className="image-resize-bar"
+      className="image-props-overlay"
+      onClick={onClose}
       style={{
         position: "fixed",
-        bottom: "var(--space-6)",
-        left: "50%",
-        transform: "translateX(-50%)",
+        inset: 0,
+        background: "rgba(0,0,0,0.5)",
         display: "flex",
         alignItems: "center",
-        gap: "var(--space-2)",
-        padding: "var(--space-2) var(--space-4)",
-        background: "var(--bg-secondary)",
-        border: "1px solid var(--border-primary)",
-        borderRadius: "var(--radius-lg)",
-        boxShadow: "0 4px 16px rgba(0,0,0,0.4)",
-        zIndex: 50,
+        justifyContent: "center",
+        zIndex: 100,
       }}
     >
-      <span style={{ fontSize: "12px", color: "var(--text-tertiary)", marginRight: "var(--space-1)" }}>
-        Resize:
-      </span>
-      {sizes.map(({ label, pct }) => (
-        <button
-          key={pct}
-          onMouseDown={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            // Visual-only resize. Persisted when user saves via getMarkdown().
-            selectedImg.style.width = `${pct}%`;
-            selectedImg.style.height = "auto";
-          }}
-          style={{
-            padding: "5px 12px",
-            borderRadius: "var(--radius-sm)",
-            border: "1px solid var(--border-primary)",
-            background: "var(--bg-surface)",
-            color: "var(--text-primary)",
-            cursor: "pointer",
-            fontSize: "12px",
-            fontWeight: 500,
-            transition: "all 0.1s",
-          }}
-        >
-          {label}
-        </button>
-      ))}
+      <div
+        className="image-props-dialog"
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: "var(--bg-secondary)",
+          border: "1px solid var(--border-primary)",
+          borderRadius: "var(--radius-lg)",
+          padding: "24px",
+          minWidth: "360px",
+          maxWidth: "480px",
+          boxShadow: "0 8px 32px rgba(0,0,0,0.6)",
+        }}
+      >
+        <h3 style={{ margin: "0 0 16px 0", fontSize: "16px", color: "var(--text-primary)" }}>
+          Image Properties
+        </h3>
+
+        <div style={{ marginBottom: "12px" }}>
+          <label style={{ display: "block", fontSize: "12px", color: "var(--text-tertiary)", marginBottom: "4px" }}>
+            Source
+          </label>
+          <input
+            readOnly
+            value={src}
+            style={{
+              width: "100%",
+              padding: "6px 8px",
+              fontSize: "12px",
+              fontFamily: "var(--font-geist-mono), monospace",
+              background: "var(--bg-surface)",
+              border: "1px solid var(--border-primary)",
+              borderRadius: "var(--radius-sm)",
+              color: "var(--text-tertiary)",
+              boxSizing: "border-box",
+            }}
+          />
+        </div>
+
+        <div style={{ marginBottom: "12px" }}>
+          <label style={{ display: "block", fontSize: "12px", color: "var(--text-tertiary)", marginBottom: "4px" }}>
+            Alt text
+          </label>
+          <input
+            value={editAlt}
+            onChange={(e) => setEditAlt(e.target.value)}
+            placeholder="Describe the image..."
+            style={{
+              width: "100%",
+              padding: "6px 8px",
+              fontSize: "13px",
+              background: "var(--bg-surface)",
+              border: "1px solid var(--border-primary)",
+              borderRadius: "var(--radius-sm)",
+              color: "var(--text-primary)",
+              boxSizing: "border-box",
+            }}
+          />
+        </div>
+
+        <div style={{ marginBottom: "20px" }}>
+          <label style={{ display: "block", fontSize: "12px", color: "var(--text-tertiary)", marginBottom: "8px" }}>
+            Width
+          </label>
+          <div style={{ display: "flex", gap: "8px" }}>
+            {["25%", "50%", "75%", "100%"].map((w) => (
+              <button
+                key={w}
+                onClick={() => setEditWidth(w)}
+                style={{
+                  flex: 1,
+                  padding: "6px 12px",
+                  borderRadius: "var(--radius-sm)",
+                  border: "1px solid var(--border-primary)",
+                  background: editWidth === w ? "var(--accent-primary)" : "var(--bg-surface)",
+                  color: editWidth === w ? "#fff" : "var(--text-primary)",
+                  cursor: "pointer",
+                  fontSize: "13px",
+                  fontWeight: 500,
+                  transition: "all 0.1s",
+                }}
+              >
+                {w}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
+          <button
+            onClick={onClose}
+            style={{
+              padding: "6px 16px",
+              borderRadius: "var(--radius-sm)",
+              border: "1px solid var(--border-primary)",
+              background: "var(--bg-surface)",
+              color: "var(--text-primary)",
+              cursor: "pointer",
+              fontSize: "13px",
+            }}
+          >
+            Cancel
+          </button>
+          <button
+            onClick={() => onApply(editAlt, editWidth)}
+            style={{
+              padding: "6px 16px",
+              borderRadius: "var(--radius-sm)",
+              border: "none",
+              background: "var(--accent-primary)",
+              color: "#fff",
+              cursor: "pointer",
+              fontSize: "13px",
+              fontWeight: 500,
+            }}
+          >
+            Apply
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -500,6 +577,7 @@ interface RichEditorProps {
 export function RichEditor({ initialContent, onChange, onSave }: RichEditorProps) {
   const isUpdatingRef = useRef(false);
   const initialHtml = useRef(markdownToHtml(initialContent));
+  const [imageDialog, setImageDialog] = useState<{ src: string; alt: string; width: string } | null>(null);
 
   const editor = useEditor({
     extensions: [
@@ -590,6 +668,57 @@ export function RichEditor({ initialContent, onChange, onSave }: RichEditorProps
 
   const editorRef = useRef(editor);
   editorRef.current = editor;
+
+  // Double-click on image opens properties dialog
+  useEffect(() => {
+    function handleDblClick(e: MouseEvent) {
+      const target = e.target as HTMLElement;
+      if (target.tagName === "IMG" && target.closest(".ProseMirror")) {
+        const imgEl = target as HTMLImageElement;
+        setImageDialog({
+          src: imgEl.src,
+          alt: imgEl.alt || "",
+          width: imgEl.style.width || "100%",
+        });
+      }
+    }
+    document.addEventListener("dblclick", handleDblClick);
+    return () => document.removeEventListener("dblclick", handleDblClick);
+  }, []);
+
+  const handleImageApply = useCallback(
+    (alt: string, width: string) => {
+      if (!imageDialog || !editor) return;
+      const currentHtml = editor.getHTML();
+      const container = document.createElement("div");
+      container.innerHTML = currentHtml;
+
+      // Find the image by src and update it
+      const img = container.querySelector(`img[src="${CSS.escape(imageDialog.src)}"]`);
+      if (img) {
+        img.setAttribute("alt", alt);
+        if (width && width !== "100%") {
+          (img as HTMLElement).style.width = width;
+          (img as HTMLElement).style.height = "auto";
+        } else {
+          (img as HTMLElement).style.removeProperty("width");
+          (img as HTMLElement).style.removeProperty("height");
+        }
+      }
+
+      // Set modified HTML back into editor atomically
+      isUpdatingRef.current = true;
+      editor.commands.setContent(container.innerHTML, { emitUpdate: false });
+      isUpdatingRef.current = false;
+
+      // Convert to markdown and notify parent
+      const md = htmlToMarkdown(container.innerHTML);
+      onChange(md);
+
+      setImageDialog(null);
+    },
+    [imageDialog, editor, onChange],
+  );
 
   // Update editor content when initialContent changes externally (e.g., loading a doc)
   useEffect(() => {
@@ -807,7 +936,15 @@ export function RichEditor({ initialContent, onChange, onSave }: RichEditorProps
         </div>
       </div>
 
-      <ImageResizeBar editor={editor} />
+      {imageDialog && (
+        <ImagePropertiesDialog
+          src={imageDialog.src}
+          alt={imageDialog.alt}
+          currentWidth={imageDialog.width}
+          onApply={handleImageApply}
+          onClose={() => setImageDialog(null)}
+        />
+      )}
 
       <style>{`
         .editor-image {

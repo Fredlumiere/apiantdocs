@@ -1,19 +1,42 @@
-import { redirect } from "next/navigation";
-import { getUser } from "@/lib/supabase-server";
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
+import { useAuth } from "@/components/auth-provider";
 import { DocEditor } from "@/components/doc-editor";
 
-interface Props {
-  params: Promise<{ slug: string[] }>;
-}
+export default function EditDocPage() {
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
+  const params = useParams();
+  const [ready, setReady] = useState(false);
 
-export default async function EditDocPage({ params }: Props) {
-  const user = await getUser();
-  if (!user) {
-    redirect("/login");
+  const slugParts = params.slug as string[];
+  const fullSlug = slugParts?.join("/") || "";
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user) {
+      router.push(`/login?next=/edit/${fullSlug}`);
+      return;
+    }
+    setReady(true);
+  }, [user, authLoading, router, fullSlug]);
+
+  if (authLoading || !ready) {
+    return (
+      <div style={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        minHeight: "60vh",
+        color: "var(--text-tertiary)",
+      }}>
+        Loading...
+      </div>
+    );
   }
-
-  const { slug } = await params;
-  const fullSlug = slug.join("/");
 
   return <DocEditor slug={fullSlug} />;
 }

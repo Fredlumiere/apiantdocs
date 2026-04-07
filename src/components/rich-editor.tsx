@@ -683,8 +683,8 @@ export function RichEditor({ initialContent, onChange, onSave }: RichEditorProps
         });
       }
     }
-    document.addEventListener("dblclick", handleDblClick);
-    return () => document.removeEventListener("dblclick", handleDblClick);
+    document.addEventListener("click", handleDblClick);
+    return () => document.removeEventListener("click", handleDblClick);
   }, []);
 
   const handleImageApply = useCallback(

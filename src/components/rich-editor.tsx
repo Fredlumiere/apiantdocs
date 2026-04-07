@@ -134,13 +134,15 @@ function htmlToMarkdown(html: string): string {
   // Images with width — preserve as HTML img tag so width persists
   td.addRule("imageWithWidth", {
     filter: (node) => {
-      return node.nodeName === "IMG" && !!(node as HTMLElement).style.width;
+      if (node.nodeName !== "IMG") return false;
+      const el = node as HTMLElement;
+      return !!(el.style.width || el.getAttribute("data-width"));
     },
     replacement(_content, node) {
       const el = node as HTMLImageElement;
       const src = el.getAttribute("src") || "";
       const alt = el.getAttribute("alt") || "";
-      const width = el.style.width;
+      const width = el.style.width || el.getAttribute("data-width") || "";
       return `<img src="${src}" alt="${alt}" style="width: ${width}; height: auto;" />`;
     },
   });
@@ -465,51 +467,18 @@ function ImageResizeBar({ editor }: { editor: ReturnType<typeof useEditor> }) {
             e.preventDefault();
             e.stopPropagation();
             const widthVal = `${pct}%`;
-            const imgSrc = selectedImg.getAttribute("src");
 
-            // Find this image node's position in the ProseMirror document.
-            // We match by src and use the DOM element to resolve ambiguity
-            // when multiple images share the same src.
-            const { state, view } = editor;
-            let imagePos = -1;
-            state.doc.descendants((node, pos) => {
-              if (imagePos >= 0) return false; // already found, skip subtrees
-              if (node.type.name === "image" && node.attrs.src === imgSrc) {
-                // Verify this is the correct DOM element by checking the
-                // actual DOM node at this position
-                const domNode = view.nodeDOM(pos);
-                if (domNode === selectedImg || domNode?.firstChild === selectedImg) {
-                  imagePos = pos;
-                  return false;
-                }
-                // Fallback: if DOM check fails, use first match by src
-                if (imagePos < 0) {
-                  imagePos = pos;
-                }
-              }
-            });
+            // Simple approach: modify the DOM, then tell editor to re-read content
+            selectedImg.style.width = widthVal;
+            selectedImg.style.height = "auto";
+            selectedImg.setAttribute("data-width", widthVal);
 
-            if (imagePos >= 0) {
-              const node = state.doc.nodeAt(imagePos);
-              if (node) {
-                const tr = state.tr.setNodeMarkup(imagePos, undefined, {
-                  ...node.attrs,
-                  width: widthVal,
-                });
-                view.dispatch(tr);
-
-                // After dispatch, ProseMirror replaces the DOM node.
-                // Find the new DOM element and update selectedImg ref
-                // so subsequent resize clicks still work.
-                const newDom = view.nodeDOM(imagePos);
-                const newImg = newDom instanceof HTMLImageElement
-                  ? newDom
-                  : (newDom as HTMLElement)?.querySelector?.("img");
-                if (newImg) {
-                  setSelectedImg(newImg as HTMLImageElement);
-                }
-              }
-            }
+            // Re-read the full HTML into the editor to sync state
+            // Use a microtask so the DOM change is reflected
+            setTimeout(() => {
+              const html = editor.getHTML();
+              editor.commands.setContent(html, false);
+            }, 10);
           }}
           style={{
             padding: "5px 12px",
@@ -566,16 +535,17 @@ export function RichEditor({ initialContent, onChange, onSave }: RichEditorProps
             width: {
               default: null,
               parseHTML: (element) => {
-                // Check style.width first since that's what renderHTML outputs
-                const styleWidth = element.style?.width;
-                if (styleWidth) return styleWidth;
-                const attrWidth = element.getAttribute("width");
-                if (attrWidth) return attrWidth;
-                return null;
+                return element.style?.width
+                  || element.getAttribute("data-width")
+                  || element.getAttribute("width")
+                  || null;
               },
               renderHTML: (attributes) => {
                 if (!attributes.width) return {};
-                return { style: `width: ${attributes.width}; height: auto;` };
+                return {
+                  style: `width: ${attributes.width}; height: auto;`,
+                  "data-width": attributes.width,
+                };
               },
             },
           };

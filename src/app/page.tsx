@@ -342,22 +342,23 @@ export default async function Home() {
             gap: "var(--space-6)",
           }}>
             {APP_FAMILIES.map((family) => (
-              <div key={family.key}>
-                <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", marginBottom: "var(--space-3)" }}>
+              <div key={family.key} style={{ marginBottom: "var(--space-4)" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "var(--space-3)", marginBottom: "var(--space-1)" }}>
                   <span style={{ color: "var(--accent-primary)" }}>
                     {APP_ICONS[family.key] || null}
                   </span>
-                  <h3 style={{ fontSize: "16px", fontWeight: 600, color: "var(--text-primary)" }}>
+                  <h3 style={{ fontSize: "16px", fontWeight: 600, color: "var(--text-primary)", margin: 0 }}>
                     {family.label}
                   </h3>
-                  <span style={{ fontSize: "12px", color: "var(--text-tertiary)" }}>
-                    {family.description}
-                  </span>
                 </div>
+                <p style={{ fontSize: "13px", color: "var(--text-tertiary)", margin: "0 0 var(--space-3) 0", paddingLeft: "35px" }}>
+                  {family.description}
+                </p>
                 <div style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
+                  display: "flex",
+                  flexWrap: "wrap",
                   gap: "var(--space-2)",
+                  paddingLeft: "35px",
                 }}>
                   {family.apps.map((app) => (
                     <Link
@@ -365,12 +366,7 @@ export default async function Home() {
                       href={`/docs/${app.slug}`}
                       className="home-card-app-item"
                     >
-                      <span style={{ fontSize: "13px", fontWeight: 500, color: "var(--text-primary)" }}>
-                        {app.label}
-                      </span>
-                      <span style={{ fontSize: "11px", color: "var(--text-tertiary)" }}>
-                        {app.source} → {app.destination}
-                      </span>
+                      {app.label}
                     </Link>
                   ))}
                 </div>
@@ -481,19 +477,21 @@ export default async function Home() {
           border-color: var(--accent-primary);
         }
         .home-card-app-item {
-          display: flex;
-          flex-direction: column;
-          gap: 2px;
-          padding: var(--space-2) var(--space-3);
-          border-radius: var(--radius-sm);
+          display: inline-flex;
+          padding: 5px 12px;
+          border-radius: var(--radius-md);
           border: 1px solid var(--border-primary);
           text-decoration: none;
-          color: inherit;
-          transition: border-color 0.15s, background 0.15s;
+          color: var(--text-primary);
+          font-size: 13px;
+          font-weight: 500;
+          transition: border-color 0.15s, background 0.15s, color 0.15s;
+          white-space: nowrap;
         }
         .home-card-app-item:hover {
           border-color: var(--accent-primary);
-          background: var(--bg-surface);
+          color: var(--accent-primary);
+          background: var(--accent-primary-subtle);
         }
         .persona-card {
           position: relative;

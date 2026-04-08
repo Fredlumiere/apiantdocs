@@ -4,12 +4,14 @@ import { useState, useCallback, useEffect } from "react";
 import Link from "next/link";
 import { UserMenu } from "./user-menu";
 import { ThemeToggle } from "./theme-toggle";
+import { useAuth } from "./auth-provider";
 
 interface DocsHeaderProps {
   onOpenSearch: () => void;
 }
 
 export function DocsHeader({ onOpenSearch }: DocsHeaderProps) {
+  const { user } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Close mobile menu on ESC
@@ -87,7 +89,7 @@ export function DocsHeader({ onOpenSearch }: DocsHeaderProps) {
           >
             Docs
           </Link>
-          <Link
+          {user && <Link
             href="/api-reference"
             style={{
               fontSize: "14px",
@@ -99,7 +101,7 @@ export function DocsHeader({ onOpenSearch }: DocsHeaderProps) {
             onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-secondary)")}
           >
             API Reference
-          </Link>
+          </Link>}
         </nav>
       </div>
 
@@ -240,7 +242,7 @@ export function DocsHeader({ onOpenSearch }: DocsHeaderProps) {
               >
                 Docs
               </Link>
-              <Link
+              {user && <Link
                 href="/api-reference"
                 onClick={closeMobile}
                 style={{
@@ -253,7 +255,7 @@ export function DocsHeader({ onOpenSearch }: DocsHeaderProps) {
                 }}
               >
                 API Reference
-              </Link>
+              </Link>}
             </nav>
           </div>
         </div>

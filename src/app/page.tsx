@@ -3,6 +3,7 @@ import { createServerClient } from "@/lib/supabase";
 import { PRODUCTS, APP_FAMILIES } from "@/lib/constants";
 import { HomeSearchHero } from "@/components/home-search-hero";
 import { UserMenu } from "@/components/user-menu";
+import { AuthNavLink } from "@/components/auth-nav-link";
 
 export const revalidate = 60;
 
@@ -153,9 +154,9 @@ export default async function Home() {
             <Link href="/docs" className="home-nav-link">
               Docs
             </Link>
-            <Link href="/api-reference" className="home-nav-link">
+            <AuthNavLink href="/api-reference" className="home-nav-link">
               API Reference
-            </Link>
+            </AuthNavLink>
             <UserMenu />
           </nav>
         </div>

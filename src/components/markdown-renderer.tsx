@@ -130,8 +130,7 @@ export function MarkdownRenderer({ content }: { content: string }) {
             }
             if (typeof width === "string" || typeof width === "number") w = String(width);
             return <ImageFrame src={typeof src === "string" ? src : undefined} alt={typeof alt === "string" ? alt : undefined} width={w} />;
-          }
-          ),
+          },
           table: ({ children, ...props }) => (
             <div style={{ overflowX: "auto", marginBottom: "var(--space-4)" }}>
               <table {...props}>{children}</table>

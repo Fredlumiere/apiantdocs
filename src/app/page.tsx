@@ -153,7 +153,7 @@ export default async function Home() {
             <Link href="/docs" className="home-nav-link">
               Docs
             </Link>
-            <Link href="/api/docs" className="home-nav-link">
+            <Link href="/api-reference" className="home-nav-link">
               API Reference
             </Link>
             <UserMenu />

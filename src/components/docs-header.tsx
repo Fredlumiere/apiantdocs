@@ -88,7 +88,7 @@ export function DocsHeader({ onOpenSearch }: DocsHeaderProps) {
             Docs
           </Link>
           <Link
-            href="/api/docs"
+            href="/api-reference"
             style={{
               fontSize: "14px",
               color: "var(--text-secondary)",
@@ -241,7 +241,7 @@ export function DocsHeader({ onOpenSearch }: DocsHeaderProps) {
                 Docs
               </Link>
               <Link
-                href="/api/docs"
+                href="/api-reference"
                 onClick={closeMobile}
                 style={{
                   fontSize: "16px",

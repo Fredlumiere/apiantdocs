@@ -291,54 +291,7 @@ export default function ApiKeysPage() {
                   lineHeight: 1.5,
                 }}
               >
-                Run these commands in your terminal to connect APIANT Docs to Claude Code:
-              </p>
-
-              {/* Step 1 */}
-              <p style={{ fontSize: "11px", fontWeight: 600, color: "var(--text-secondary)", marginBottom: "var(--space-1)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                Step 1 — Install (once)
-              </p>
-              <div style={{ position: "relative", marginBottom: "var(--space-3)" }}>
-                <pre
-                  style={{
-                    padding: "var(--space-3)",
-                    background: "var(--bg-secondary)",
-                    borderRadius: "var(--radius-sm)",
-                    border: "1px solid var(--border-primary)",
-                    fontSize: "12px",
-                    fontFamily: "var(--font-geist-mono), monospace",
-                    color: "var(--text-secondary)",
-                    whiteSpace: "pre-wrap",
-                    wordBreak: "break-all",
-                    lineHeight: 1.6,
-                    margin: 0,
-                    paddingRight: "60px",
-                  }}
-                >{`curl -sf https://info.apiant.com/apiant-docs-mcp.js -o ~/.apiant-docs-mcp.js`}</pre>
-                <button
-                  onClick={async () => {
-                    await navigator.clipboard.writeText(
-                      `curl -sf https://info.apiant.com/apiant-docs-mcp.js -o ~/.apiant-docs-mcp.js`
-                    );
-                    setCopiedMcp(true);
-                    setTimeout(() => setCopiedMcp(false), 2000);
-                  }}
-                  style={{
-                    ...secondaryButtonStyle,
-                    position: "absolute",
-                    top: "6px",
-                    right: "6px",
-                    padding: "3px 8px",
-                    fontSize: "11px",
-                  }}
-                >
-                  {copiedMcp ? "Copied" : "Copy"}
-                </button>
-              </div>
-
-              {/* Step 2 */}
-              <p style={{ fontSize: "11px", fontWeight: 600, color: "var(--text-secondary)", marginBottom: "var(--space-1)", textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                Step 2 — Connect to Claude Code
+                Run this command in your terminal to connect APIANT Docs to Claude Code:
               </p>
               <div style={{ position: "relative" }}>
                 <pre
@@ -356,11 +309,11 @@ export default function ApiKeysPage() {
                     margin: 0,
                     paddingRight: "60px",
                   }}
-                >{`claude mcp add apiant-docs -s user -- node ~/.apiant-docs-mcp.js --api-key ${createdKey}`}</pre>
+                >{`curl -sf https://info.apiant.com/apiant-docs-mcp.js -o ~/.apiant-docs-mcp.js && claude mcp add apiant-docs -s user -- node ~/.apiant-docs-mcp.js --api-key ${createdKey}`}</pre>
                 <button
                   onClick={async () => {
                     await navigator.clipboard.writeText(
-                      `claude mcp add apiant-docs -s user -- node ~/.apiant-docs-mcp.js --api-key ${createdKey}`
+                      `curl -sf https://info.apiant.com/apiant-docs-mcp.js -o ~/.apiant-docs-mcp.js && claude mcp add apiant-docs -s user -- node ~/.apiant-docs-mcp.js --api-key ${createdKey}`
                     );
                     setCopiedMcp(true);
                     setTimeout(() => setCopiedMcp(false), 2000);

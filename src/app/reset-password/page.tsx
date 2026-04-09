@@ -1,8 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { createBrowserClient } from "@/lib/supabase-browser";
 
 export default function ResetPasswordPage() {
@@ -11,8 +10,31 @@ export default function ResetPasswordPage() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
-  const router = useRouter();
+  const [sessionReady, setSessionReady] = useState(false);
+  const [checking, setChecking] = useState(true);
   const supabase = createBrowserClient();
+
+  // Wait for Supabase to pick up the recovery session from the URL hash
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (event === "PASSWORD_RECOVERY" || (session && event === "SIGNED_IN")) {
+          setSessionReady(true);
+          setChecking(false);
+        }
+      }
+    );
+
+    // Also check if there's already a session (user might have refreshed)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        setSessionReady(true);
+      }
+      setChecking(false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, [supabase]);
 
   async function handleReset(e: React.FormEvent) {
     e.preventDefault();
@@ -42,6 +64,43 @@ export default function ResetPasswordPage() {
 
     setSuccess(true);
     setLoading(false);
+  }
+
+  if (checking) {
+    return (
+      <div style={containerStyle}>
+        <div style={cardStyle}>
+          <p style={{ ...subtextStyle, textAlign: "center" }}>Verifying reset link...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!sessionReady) {
+    return (
+      <div style={containerStyle}>
+        <div style={cardStyle}>
+          <div style={{ textAlign: "center" }}>
+            <h1 style={headingStyle}>Invalid or expired link</h1>
+            <p style={subtextStyle}>
+              This password reset link is no longer valid. Please request a new one.
+            </p>
+            <Link
+              href="/login"
+              style={{
+                display: "inline-block",
+                marginTop: "var(--space-4)",
+                fontSize: "13px",
+                color: "var(--accent-primary)",
+                textDecoration: "none",
+              }}
+            >
+              Back to login
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (success) {

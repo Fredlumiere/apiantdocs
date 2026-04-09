@@ -48,32 +48,7 @@ export function UserMenu() {
   }
 
   if (!user) {
-    return (
-      <Link
-        href="/login"
-        style={{
-          fontSize: "13px",
-          fontWeight: 500,
-          color: "var(--text-secondary)",
-          textDecoration: "none",
-          padding: "6px 12px",
-          borderRadius: "var(--radius-md)",
-          border: "1px solid var(--border-primary)",
-          background: "var(--bg-surface)",
-          transition: "border-color 0.15s, color 0.15s",
-        }}
-        onMouseEnter={(e) => {
-          e.currentTarget.style.borderColor = "var(--border-hover)";
-          e.currentTarget.style.color = "var(--text-primary)";
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.borderColor = "var(--border-primary)";
-          e.currentTarget.style.color = "var(--text-secondary)";
-        }}
-      >
-        Log in
-      </Link>
-    );
+    return null;
   }
 
   const initials = getInitials(user.email || "");

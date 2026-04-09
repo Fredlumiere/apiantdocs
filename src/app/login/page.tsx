@@ -12,6 +12,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [magicLinkSent, setMagicLinkSent] = useState(false);
   const [mode, setMode] = useState<"password" | "magic">("password");
+  const [resetSent, setResetSent] = useState(false);
   const router = useRouter();
   const supabase = createBrowserClient();
 
@@ -55,6 +56,53 @@ export default function LoginPage() {
 
     setMagicLinkSent(true);
     setLoading(false);
+  }
+
+  async function handleForgotPassword() {
+    if (!email) {
+      setError("Enter your email address first, then click Forgot password.");
+      return;
+    }
+    setError(null);
+    setLoading(true);
+
+    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth/callback?next=/dashboard`,
+    });
+
+    if (resetError) {
+      setError(resetError.message);
+      setLoading(false);
+      return;
+    }
+
+    setResetSent(true);
+    setLoading(false);
+  }
+
+  if (resetSent) {
+    return (
+      <div style={containerStyle}>
+        <div style={cardStyle}>
+          <div style={{ textAlign: "center" }}>
+            <h1 style={headingStyle}>Check your email</h1>
+            <p style={subtextStyle}>
+              We sent a password reset link to <strong style={{ color: "var(--text-primary)" }}>{email}</strong>.
+              Click the link in the email to reset your password.
+            </p>
+            <button
+              onClick={() => {
+                setResetSent(false);
+                setMode("password");
+              }}
+              style={linkButtonStyle}
+            >
+              Back to login
+            </button>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   if (magicLinkSent) {
@@ -210,25 +258,33 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <p
-          style={{
-            marginTop: "var(--space-6)",
-            fontSize: "13px",
-            color: "var(--text-tertiary)",
-            textAlign: "center",
-          }}
-        >
-          Don&apos;t have an account?{" "}
-          <Link
-            href="/signup"
+        {mode === "password" && (
+          <p
             style={{
-              color: "var(--accent-primary)",
-              textDecoration: "none",
+              marginTop: "var(--space-4)",
+              fontSize: "13px",
+              color: "var(--text-tertiary)",
+              textAlign: "center",
             }}
           >
-            Sign up
-          </Link>
-        </p>
+            <button
+              type="button"
+              onClick={handleForgotPassword}
+              disabled={loading}
+              style={{
+                color: "var(--accent-primary)",
+                background: "none",
+                border: "none",
+                cursor: loading ? "not-allowed" : "pointer",
+                fontFamily: "inherit",
+                fontSize: "13px",
+                padding: 0,
+              }}
+            >
+              Forgot your password?
+            </button>
+          </p>
+        )}
       </div>
     </div>
   );

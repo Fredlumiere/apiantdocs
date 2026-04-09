@@ -4,10 +4,20 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
 
-const API_BASE = process.env.APIANTDOCS_API_URL || "https://apiantdocs.vercel.app";
+const API_BASE = process.env.APIANTDOCS_API_URL || "https://info.apiant.com";
+
+// Parse --api-key from CLI args
+function getCliApiKey(): string {
+  const args = process.argv.slice(2);
+  const idx = args.indexOf("--api-key");
+  if (idx !== -1 && args[idx + 1]) {
+    return args[idx + 1];
+  }
+  return "";
+}
 
 // Auth state — supports API key or session token
-let authApiKey = process.env.APIANTDOCS_API_KEY || "";
+let authApiKey = getCliApiKey() || process.env.APIANTDOCS_API_KEY || "";
 let authSessionToken = "";
 
 function getAuthHeaders(): Record<string, string> {

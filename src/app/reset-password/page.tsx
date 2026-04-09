@@ -5,73 +5,66 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createBrowserClient } from "@/lib/supabase-browser";
 
-export default function LoginPage() {
-  const [email, setEmail] = useState("");
+export default function ResetPasswordPage() {
   const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [resetSent, setResetSent] = useState(false);
+  const [success, setSuccess] = useState(false);
   const router = useRouter();
   const supabase = createBrowserClient();
 
-  async function handlePasswordLogin(e: React.FormEvent) {
+  async function handleReset(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters.");
+      return;
+    }
+
+    if (password !== confirm) {
+      setError("Passwords do not match.");
+      return;
+    }
+
     setLoading(true);
 
-    const { error: authError } = await supabase.auth.signInWithPassword({
-      email,
+    const { error: updateError } = await supabase.auth.updateUser({
       password,
     });
 
-    if (authError) {
-      setError(authError.message);
+    if (updateError) {
+      setError(updateError.message);
       setLoading(false);
       return;
     }
 
-    router.push("/docs");
-    router.refresh();
-  }
-
-  async function handleForgotPassword() {
-    if (!email) {
-      setError("Enter your email address first, then click Forgot password.");
-      return;
-    }
-    setError(null);
-    setLoading(true);
-
-    const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
-    });
-
-    if (resetError) {
-      setError(resetError.message);
-      setLoading(false);
-      return;
-    }
-
-    setResetSent(true);
+    setSuccess(true);
     setLoading(false);
   }
 
-  if (resetSent) {
+  if (success) {
     return (
       <div style={containerStyle}>
         <div style={cardStyle}>
           <div style={{ textAlign: "center" }}>
-            <h1 style={headingStyle}>Check your email</h1>
+            <h1 style={headingStyle}>Password updated</h1>
             <p style={subtextStyle}>
-              We sent a password reset link to <strong style={{ color: "var(--text-primary)" }}>{email}</strong>.
-              Click the link in the email to reset your password.
+              Your password has been reset successfully.
             </p>
-            <button
-              onClick={() => setResetSent(false)}
-              style={linkButtonStyle}
+            <Link
+              href="/docs"
+              style={{
+                display: "inline-block",
+                marginTop: "var(--space-4)",
+                fontSize: "13px",
+                color: "var(--accent-primary)",
+                textDecoration: "none",
+              }}
             >
-              Back to login
-            </button>
+              Go to docs
+            </Link>
           </div>
         </div>
       </div>
@@ -113,36 +106,16 @@ export default function LoginPage() {
               docs
             </span>
           </Link>
-          <h1 style={headingStyle}>Sign in</h1>
-          <p style={subtextStyle}>
-            Sign in to access your API keys and manage documentation.
-          </p>
+          <h1 style={headingStyle}>Reset your password</h1>
+          <p style={subtextStyle}>Enter your new password below.</p>
         </div>
 
-        {error && (
-          <div style={errorStyle}>{error}</div>
-        )}
+        {error && <div style={errorStyle}>{error}</div>}
 
-        <form onSubmit={handlePasswordLogin}>
+        <form onSubmit={handleReset}>
           <div style={{ marginBottom: "var(--space-4)" }}>
-            <label htmlFor="email" style={labelStyle}>
-              Email
-            </label>
-            <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              autoComplete="email"
-              placeholder="you@example.com"
-              style={inputStyle}
-            />
-          </div>
-
-          <div style={{ marginBottom: "var(--space-6)" }}>
             <label htmlFor="password" style={labelStyle}>
-              Password
+              New password
             </label>
             <input
               id="password"
@@ -150,8 +123,26 @@ export default function LoginPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
-              autoComplete="current-password"
-              placeholder="Enter your password"
+              autoComplete="new-password"
+              placeholder="Min 8 characters"
+              minLength={8}
+              style={inputStyle}
+            />
+          </div>
+
+          <div style={{ marginBottom: "var(--space-6)" }}>
+            <label htmlFor="confirm" style={labelStyle}>
+              Confirm password
+            </label>
+            <input
+              id="confirm"
+              type="password"
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              required
+              autoComplete="new-password"
+              placeholder="Re-enter your password"
+              minLength={8}
               style={inputStyle}
             />
           </div>
@@ -165,35 +156,9 @@ export default function LoginPage() {
               cursor: loading ? "not-allowed" : "pointer",
             }}
           >
-            {loading ? "Signing in..." : "Sign in"}
+            {loading ? "Updating..." : "Update password"}
           </button>
         </form>
-
-        <p
-            style={{
-              marginTop: "var(--space-4)",
-              fontSize: "13px",
-              color: "var(--text-tertiary)",
-              textAlign: "center",
-            }}
-          >
-            <button
-              type="button"
-              onClick={handleForgotPassword}
-              disabled={loading}
-              style={{
-                color: "var(--accent-primary)",
-                background: "none",
-                border: "none",
-                cursor: loading ? "not-allowed" : "pointer",
-                fontFamily: "inherit",
-                fontSize: "13px",
-                padding: 0,
-              }}
-            >
-              Forgot your password?
-            </button>
-          </p>
       </div>
     </div>
   );
@@ -273,15 +238,4 @@ const errorStyle: React.CSSProperties = {
   background: "rgba(239,68,68,0.08)",
   border: "1px solid rgba(239,68,68,0.2)",
   borderRadius: "var(--radius-md)",
-};
-
-const linkButtonStyle: React.CSSProperties = {
-  marginTop: "var(--space-4)",
-  fontSize: "13px",
-  color: "var(--accent-primary)",
-  background: "none",
-  border: "none",
-  cursor: "pointer",
-  fontFamily: "inherit",
-  textDecoration: "underline",
 };

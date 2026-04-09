@@ -9,9 +9,11 @@ export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
   const next = searchParams.get("next") || "/dashboard";
+  // Prevent open redirect — only allow relative paths
+  const safeNext = next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard";
 
   if (code) {
-    const response = NextResponse.redirect(new URL(next, origin));
+    const response = NextResponse.redirect(new URL(safeNext, origin));
 
     const supabase = createSSRServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -32,6 +34,10 @@ export async function GET(request: NextRequest) {
 
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
+      // If this was a password reset, redirect to the reset-password page
+      if (safeNext === "/reset-password" || safeNext.startsWith("/reset-password")) {
+        return NextResponse.redirect(new URL("/reset-password", origin));
+      }
       return response;
     }
   }

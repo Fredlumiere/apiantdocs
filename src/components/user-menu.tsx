@@ -53,6 +53,7 @@ export function UserMenu() {
 
   const initials = getInitials(user.email || "");
   const displayName = user.user_metadata?.name || user.email || "User";
+  const isAdmin = user.email === "fred@apiant.com";
 
   return (
     <div ref={menuRef} style={{ position: "relative" }}>
@@ -161,6 +162,33 @@ export function UserMenu() {
             >
               API Keys
             </Link>
+            {isAdmin && (
+              <a
+                href="https://supabase.com/dashboard/project/lptryjqgqoknvmzotyvz/auth/users"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setOpen(false)}
+                style={{
+                  display: "block",
+                  padding: "var(--space-2) var(--space-3)",
+                  fontSize: "13px",
+                  color: "var(--text-secondary)",
+                  textDecoration: "none",
+                  borderRadius: "var(--radius-sm)",
+                  transition: "background 0.1s, color 0.1s",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = "var(--bg-surface-hover)";
+                  e.currentTarget.style.color = "var(--text-primary)";
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = "transparent";
+                  e.currentTarget.style.color = "var(--text-secondary)";
+                }}
+              >
+                Manage Users
+              </a>
+            )}
             <button
               onClick={async () => {
                 setOpen(false);

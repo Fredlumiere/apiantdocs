@@ -22,7 +22,6 @@ export default function ApiKeysPage() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [createdKey, setCreatedKey] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const [copiedMcp, setCopiedMcp] = useState(false);
   const [revoking, setRevoking] = useState<string | null>(null);
 
   const fetchKeys = useCallback(async () => {
@@ -216,7 +215,7 @@ export default function ApiKeysPage() {
           </div>
         )}
 
-        {/* Newly created key — show once */}
+        {/* Newly created key — single command with key baked in */}
         {createdKey && (
           <div
             style={{
@@ -235,103 +234,48 @@ export default function ApiKeysPage() {
                 marginBottom: "var(--space-2)",
               }}
             >
-              API key created. Copy it now — you won&apos;t see it again.
+              API key created — copy this command to connect to Claude Code:
             </p>
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "var(--space-2)",
-              }}
-            >
-              <code
+            <div style={{ position: "relative" }}>
+              <pre
                 style={{
-                  flex: 1,
-                  padding: "var(--space-2) var(--space-3)",
+                  padding: "var(--space-3)",
+                  paddingRight: "60px",
                   background: "var(--bg-primary)",
                   borderRadius: "var(--radius-md)",
                   border: "1px solid var(--border-secondary)",
-                  fontSize: "13px",
+                  fontSize: "12px",
                   fontFamily: "var(--font-geist-mono), monospace",
                   color: "var(--text-primary)",
+                  whiteSpace: "pre-wrap",
                   wordBreak: "break-all",
+                  lineHeight: 1.6,
+                  margin: 0,
+                }}
+              >{`curl -sf https://info.apiant.com/apiant-docs-mcp.js -o ~/.apiant-docs-mcp.js && claude mcp add apiant-docs -s user -- node ~/.apiant-docs-mcp.js --api-key ${createdKey}`}</pre>
+              <button
+                onClick={async () => {
+                  await navigator.clipboard.writeText(
+                    `curl -sf https://info.apiant.com/apiant-docs-mcp.js -o ~/.apiant-docs-mcp.js && claude mcp add apiant-docs -s user -- node ~/.apiant-docs-mcp.js --api-key ${createdKey}`
+                  );
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 2000);
+                }}
+                style={{
+                  ...secondaryButtonStyle,
+                  position: "absolute",
+                  top: "6px",
+                  right: "6px",
+                  padding: "4px 10px",
+                  fontSize: "12px",
                 }}
               >
-                {createdKey}
-              </code>
-              <button onClick={copyKey} style={secondaryButtonStyle}>
                 {copied ? "Copied" : "Copy"}
               </button>
             </div>
-            {/* MCP Setup Instructions */}
-            <div
-              style={{
-                marginTop: "var(--space-4)",
-                padding: "var(--space-4)",
-                background: "var(--bg-primary)",
-                borderRadius: "var(--radius-md)",
-                border: "1px solid var(--border-secondary)",
-              }}
-            >
-              <p
-                style={{
-                  fontSize: "13px",
-                  fontWeight: 500,
-                  color: "var(--text-primary)",
-                  marginBottom: "var(--space-2)",
-                }}
-              >
-                Connect via MCP (Claude Code)
-              </p>
-              <p
-                style={{
-                  fontSize: "12px",
-                  color: "var(--text-tertiary)",
-                  marginBottom: "var(--space-3)",
-                  lineHeight: 1.5,
-                }}
-              >
-                Run this command in your terminal to connect APIANT Docs to Claude Code:
-              </p>
-              <div style={{ position: "relative" }}>
-                <pre
-                  style={{
-                    padding: "var(--space-3)",
-                    background: "var(--bg-secondary)",
-                    borderRadius: "var(--radius-sm)",
-                    border: "1px solid var(--border-primary)",
-                    fontSize: "12px",
-                    fontFamily: "var(--font-geist-mono), monospace",
-                    color: "var(--text-secondary)",
-                    whiteSpace: "pre-wrap",
-                    wordBreak: "break-all",
-                    lineHeight: 1.6,
-                    margin: 0,
-                    paddingRight: "60px",
-                  }}
-                >{`curl -sf https://info.apiant.com/apiant-docs-mcp.js -o ~/.apiant-docs-mcp.js && claude mcp add apiant-docs -s user -- node ~/.apiant-docs-mcp.js --api-key ${createdKey}`}</pre>
-                <button
-                  onClick={async () => {
-                    await navigator.clipboard.writeText(
-                      `curl -sf https://info.apiant.com/apiant-docs-mcp.js -o ~/.apiant-docs-mcp.js && claude mcp add apiant-docs -s user -- node ~/.apiant-docs-mcp.js --api-key ${createdKey}`
-                    );
-                    setCopiedMcp(true);
-                    setTimeout(() => setCopiedMcp(false), 2000);
-                  }}
-                  style={{
-                    ...secondaryButtonStyle,
-                    position: "absolute",
-                    top: "6px",
-                    right: "6px",
-                    padding: "3px 8px",
-                    fontSize: "11px",
-                  }}
-                >
-                  {copiedMcp ? "Copied" : "Copy"}
-                </button>
-              </div>
-            </div>
-
+            <p style={{ fontSize: "11px", color: "var(--text-tertiary)", marginTop: "var(--space-2)", lineHeight: 1.5 }}>
+              This key won&apos;t be shown again. Paste this command in your terminal to finish setup.
+            </p>
             <button
               onClick={() => setCreatedKey(null)}
               style={{
@@ -534,43 +478,6 @@ export default function ApiKeysPage() {
           </div>
         )}
 
-        {/* Permanent MCP Setup Instructions */}
-        <div
-          style={{
-            marginTop: "var(--space-8)",
-            padding: "var(--space-6)",
-            borderRadius: "var(--radius-lg)",
-            border: "1px solid var(--border-primary)",
-            background: "var(--bg-secondary)",
-          }}
-        >
-          <h2 style={{ fontSize: "16px", fontWeight: 600, color: "var(--text-primary)", marginBottom: "var(--space-2)" }}>
-            Connect to Claude Code
-          </h2>
-          <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "var(--space-4)", lineHeight: 1.5 }}>
-            Use your API key to connect APIANT Docs as an MCP server in Claude Code. Run this in your terminal:
-          </p>
-          <div style={{ position: "relative" }}>
-            <pre
-              style={{
-                padding: "var(--space-3)",
-                background: "var(--bg-primary)",
-                borderRadius: "var(--radius-sm)",
-                border: "1px solid var(--border-primary)",
-                fontSize: "12px",
-                fontFamily: "var(--font-geist-mono), monospace",
-                color: "var(--text-secondary)",
-                whiteSpace: "pre-wrap",
-                wordBreak: "break-all",
-                lineHeight: 1.6,
-                margin: 0,
-              }}
-            >{`curl -sf https://info.apiant.com/apiant-docs-mcp.js -o ~/.apiant-docs-mcp.js && claude mcp add apiant-docs -s user -- node ~/.apiant-docs-mcp.js --api-key YOUR_API_KEY`}</pre>
-          </div>
-          <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginTop: "var(--space-3)", lineHeight: 1.5 }}>
-            Replace <code style={{ fontSize: "12px", fontFamily: "var(--font-geist-mono), monospace", color: "var(--text-secondary)" }}>YOUR_API_KEY</code> with one of your keys above. Create a key with <strong>read</strong> + <strong>write</strong> permissions for full access.
-          </p>
-        </div>
       </main>
     </div>
   );

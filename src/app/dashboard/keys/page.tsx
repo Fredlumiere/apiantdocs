@@ -533,6 +533,44 @@ export default function ApiKeysPage() {
             ))}
           </div>
         )}
+
+        {/* Permanent MCP Setup Instructions */}
+        <div
+          style={{
+            marginTop: "var(--space-8)",
+            padding: "var(--space-6)",
+            borderRadius: "var(--radius-lg)",
+            border: "1px solid var(--border-primary)",
+            background: "var(--bg-secondary)",
+          }}
+        >
+          <h2 style={{ fontSize: "16px", fontWeight: 600, color: "var(--text-primary)", marginBottom: "var(--space-2)" }}>
+            Connect to Claude Code
+          </h2>
+          <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "var(--space-4)", lineHeight: 1.5 }}>
+            Use your API key to connect APIANT Docs as an MCP server in Claude Code. Run this in your terminal:
+          </p>
+          <div style={{ position: "relative" }}>
+            <pre
+              style={{
+                padding: "var(--space-3)",
+                background: "var(--bg-primary)",
+                borderRadius: "var(--radius-sm)",
+                border: "1px solid var(--border-primary)",
+                fontSize: "12px",
+                fontFamily: "var(--font-geist-mono), monospace",
+                color: "var(--text-secondary)",
+                whiteSpace: "pre-wrap",
+                wordBreak: "break-all",
+                lineHeight: 1.6,
+                margin: 0,
+              }}
+            >{`curl -sf https://info.apiant.com/apiant-docs-mcp.js -o ~/.apiant-docs-mcp.js && claude mcp add apiant-docs -s user -- node ~/.apiant-docs-mcp.js --api-key YOUR_API_KEY`}</pre>
+          </div>
+          <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginTop: "var(--space-3)", lineHeight: 1.5 }}>
+            Replace <code style={{ fontSize: "12px", fontFamily: "var(--font-geist-mono), monospace", color: "var(--text-secondary)" }}>YOUR_API_KEY</code> with one of your keys above. Create a key with <strong>read</strong> + <strong>write</strong> permissions for full access.
+          </p>
+        </div>
       </main>
     </div>
   );

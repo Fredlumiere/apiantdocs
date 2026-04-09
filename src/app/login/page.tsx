@@ -10,8 +10,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [magicLinkSent, setMagicLinkSent] = useState(false);
-  const [mode, setMode] = useState<"password" | "magic">("password");
   const [resetSent, setResetSent] = useState(false);
   const router = useRouter();
   const supabase = createBrowserClient();
@@ -34,28 +32,6 @@ export default function LoginPage() {
 
     router.push("/docs");
     router.refresh();
-  }
-
-  async function handleMagicLink(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
-    setLoading(true);
-
-    const { error: authError } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
-
-    if (authError) {
-      setError(authError.message);
-      setLoading(false);
-      return;
-    }
-
-    setMagicLinkSent(true);
-    setLoading(false);
   }
 
   async function handleForgotPassword() {
@@ -91,35 +67,7 @@ export default function LoginPage() {
               Click the link in the email to reset your password.
             </p>
             <button
-              onClick={() => {
-                setResetSent(false);
-                setMode("password");
-              }}
-              style={linkButtonStyle}
-            >
-              Back to login
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (magicLinkSent) {
-    return (
-      <div style={containerStyle}>
-        <div style={cardStyle}>
-          <div style={{ textAlign: "center" }}>
-            <h1 style={headingStyle}>Check your email</h1>
-            <p style={subtextStyle}>
-              We sent a magic link to <strong style={{ color: "var(--text-primary)" }}>{email}</strong>.
-              Click the link in the email to sign in.
-            </p>
-            <button
-              onClick={() => {
-                setMagicLinkSent(false);
-                setMode("password");
-              }}
+              onClick={() => setResetSent(false)}
               style={linkButtonStyle}
             >
               Back to login
@@ -167,46 +115,15 @@ export default function LoginPage() {
           </Link>
           <h1 style={headingStyle}>Sign in</h1>
           <p style={subtextStyle}>
-            Access your API keys and manage documentation.
+            Sign in to access your API keys and manage documentation.
           </p>
-        </div>
-
-        {/* Mode tabs */}
-        <div
-          style={{
-            display: "flex",
-            gap: "var(--space-1)",
-            marginBottom: "var(--space-6)",
-            background: "var(--bg-surface)",
-            borderRadius: "var(--radius-md)",
-            padding: "3px",
-          }}
-        >
-          <button
-            onClick={() => setMode("password")}
-            style={{
-              ...tabStyle,
-              ...(mode === "password" ? tabActiveStyle : {}),
-            }}
-          >
-            Password
-          </button>
-          <button
-            onClick={() => setMode("magic")}
-            style={{
-              ...tabStyle,
-              ...(mode === "magic" ? tabActiveStyle : {}),
-            }}
-          >
-            Magic Link
-          </button>
         </div>
 
         {error && (
           <div style={errorStyle}>{error}</div>
         )}
 
-        <form onSubmit={mode === "password" ? handlePasswordLogin : handleMagicLink}>
+        <form onSubmit={handlePasswordLogin}>
           <div style={{ marginBottom: "var(--space-4)" }}>
             <label htmlFor="email" style={labelStyle}>
               Email
@@ -223,23 +140,21 @@ export default function LoginPage() {
             />
           </div>
 
-          {mode === "password" && (
-            <div style={{ marginBottom: "var(--space-6)" }}>
-              <label htmlFor="password" style={labelStyle}>
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                autoComplete="current-password"
-                placeholder="Enter your password"
-                style={inputStyle}
-              />
-            </div>
-          )}
+          <div style={{ marginBottom: "var(--space-6)" }}>
+            <label htmlFor="password" style={labelStyle}>
+              Password
+            </label>
+            <input
+              id="password"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+              autoComplete="current-password"
+              placeholder="Enter your password"
+              style={inputStyle}
+            />
+          </div>
 
           <button
             type="submit"
@@ -250,16 +165,11 @@ export default function LoginPage() {
               cursor: loading ? "not-allowed" : "pointer",
             }}
           >
-            {loading
-              ? "Signing in..."
-              : mode === "password"
-                ? "Sign in"
-                : "Send magic link"}
+            {loading ? "Signing in..." : "Sign in"}
           </button>
         </form>
 
-        {mode === "password" && (
-          <p
+        <p
             style={{
               marginTop: "var(--space-4)",
               fontSize: "13px",
@@ -284,7 +194,6 @@ export default function LoginPage() {
               Forgot your password?
             </button>
           </p>
-        )}
       </div>
     </div>
   );
@@ -354,25 +263,6 @@ const submitButtonStyle: React.CSSProperties = {
   border: "none",
   borderRadius: "var(--radius-md)",
   transition: "opacity 0.15s",
-};
-
-const tabStyle: React.CSSProperties = {
-  flex: 1,
-  padding: "6px 12px",
-  fontSize: "13px",
-  fontWeight: 500,
-  fontFamily: "inherit",
-  background: "transparent",
-  border: "none",
-  borderRadius: "var(--radius-sm)",
-  color: "var(--text-tertiary)",
-  cursor: "pointer",
-  transition: "background 0.1s, color 0.1s",
-};
-
-const tabActiveStyle: React.CSSProperties = {
-  background: "var(--bg-secondary)",
-  color: "var(--text-primary)",
 };
 
 const errorStyle: React.CSSProperties = {

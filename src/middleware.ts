@@ -61,17 +61,6 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/docs", request.url));
   }
 
-  // Catch-all: redirect bare doc slugs to /docs/...
-  // Covers old Archbee URLs that didn't have the /docs/ prefix
-  const knownRoutes = ["/docs", "/api", "/login", "/signup", "/auth", "/dashboard", "/edit", "/reset-password", "/api-reference"];
-  if (
-    !knownRoutes.some((r) => pathname === r || pathname.startsWith(r + "/")) &&
-    pathname !== "/" &&
-    !pathname.includes(".")
-  ) {
-    return NextResponse.redirect(new URL(`/docs${pathname}`, request.url), 301);
-  }
-
   // Add CORS headers to all API routes
   if (pathname.startsWith("/api/")) {
     response.headers.set("Access-Control-Allow-Origin", "*");

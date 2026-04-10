@@ -30116,6 +30116,7 @@ var StdioServerTransport = class {
 
 // src/index.ts
 var API_BASE = process.env.APIANTDOCS_API_URL || "https://info.apiant.com";
+var MCP_VERSION = "0.2.0";
 function getCliApiKey() {
   const args = process.argv.slice(2);
   const idx = args.indexOf("--api-key");
@@ -30152,6 +30153,41 @@ var server = new McpServer({
   name: "apiant-docs",
   version: "0.1.0"
 });
+server.tool(
+  "docs_version",
+  "Check current MCP server version and whether an update is available",
+  {},
+  async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/mcp-version`);
+      const data = await res.json();
+      if (data.version && data.version !== MCP_VERSION) {
+        return {
+          content: [{
+            type: "text",
+            text: `Update available! Current: ${MCP_VERSION}, Latest: ${data.version}
+
+Run this to update:
+${data.update_command}`
+          }]
+        };
+      }
+      return {
+        content: [{
+          type: "text",
+          text: `MCP server is up to date (v${MCP_VERSION}).`
+        }]
+      };
+    } catch {
+      return {
+        content: [{
+          type: "text",
+          text: `Current version: ${MCP_VERSION}. Could not check for updates.`
+        }]
+      };
+    }
+  }
+);
 server.tool(
   "docs_login",
   "Authenticate with APIANT docs using email and password. Stores session token for subsequent calls.",

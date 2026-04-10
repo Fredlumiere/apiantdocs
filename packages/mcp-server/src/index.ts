@@ -5,6 +5,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 
 const API_BASE = process.env.APIANTDOCS_API_URL || "https://info.apiant.com";
+const MCP_VERSION = "0.2.0";
 
 // Parse --api-key from CLI args
 function getCliApiKey(): string {
@@ -50,6 +51,40 @@ const server = new McpServer({
   name: "apiant-docs",
   version: "0.1.0",
 });
+
+// docs_version — check for MCP server updates
+server.tool(
+  "docs_version",
+  "Check current MCP server version and whether an update is available",
+  {},
+  async () => {
+    try {
+      const res = await fetch(`${API_BASE}/api/mcp-version`);
+      const data = await res.json();
+      if (data.version && data.version !== MCP_VERSION) {
+        return {
+          content: [{
+            type: "text" as const,
+            text: `Update available! Current: ${MCP_VERSION}, Latest: ${data.version}\n\nRun this to update:\n${data.update_command}`,
+          }],
+        };
+      }
+      return {
+        content: [{
+          type: "text" as const,
+          text: `MCP server is up to date (v${MCP_VERSION}).`,
+        }],
+      };
+    } catch {
+      return {
+        content: [{
+          type: "text" as const,
+          text: `Current version: ${MCP_VERSION}. Could not check for updates.`,
+        }],
+      };
+    }
+  }
+);
 
 // docs_login — authenticate with email + password
 server.tool(

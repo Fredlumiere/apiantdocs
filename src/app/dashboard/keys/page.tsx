@@ -252,11 +252,11 @@ export default function ApiKeysPage() {
                   lineHeight: 1.6,
                   margin: 0,
                 }}
-              >{`curl -sf https://info.apiant.com/apiant-docs-mcp.js -o ~/.apiant-docs-mcp.js && claude mcp add apiant-docs -s user -- node ~/.apiant-docs-mcp.js --api-key ${createdKey}`}</pre>
+              >{`curl -sfL https://info.apiant.com/apiant-docs-mcp.js -o ~/.apiant-docs-mcp.js && claude mcp add apiant-docs -s user -- node ~/.apiant-docs-mcp.js --api-key ${createdKey}`}</pre>
               <button
                 onClick={async () => {
                   await navigator.clipboard.writeText(
-                    `curl -sf https://info.apiant.com/apiant-docs-mcp.js -o ~/.apiant-docs-mcp.js && claude mcp add apiant-docs -s user -- node ~/.apiant-docs-mcp.js --api-key ${createdKey}`
+                    `curl -sfL https://info.apiant.com/apiant-docs-mcp.js -o ~/.apiant-docs-mcp.js && claude mcp add apiant-docs -s user -- node ~/.apiant-docs-mcp.js --api-key ${createdKey}`
                   );
                   setCopied(true);
                   setTimeout(() => setCopied(false), 2000);
@@ -510,11 +510,11 @@ export default function ApiKeysPage() {
                 lineHeight: 1.6,
                 margin: 0,
               }}
-            >{`curl -sf https://info.apiant.com/apiant-docs-mcp.js -o ~/.apiant-docs-mcp.js && curl -sf https://info.apiant.com/write-doc.md -o ~/.claude/commands/write-doc.md`}</pre>
+            >{`curl -sfL https://info.apiant.com/apiant-docs-mcp.js -o ~/.apiant-docs-mcp.js && curl -sfL https://info.apiant.com/write-doc.md -o ~/.claude/commands/write-doc.md`}</pre>
             <button
               onClick={async () => {
                 await navigator.clipboard.writeText(
-                  `curl -sf https://info.apiant.com/apiant-docs-mcp.js -o ~/.apiant-docs-mcp.js && curl -sf https://info.apiant.com/write-doc.md -o ~/.claude/commands/write-doc.md`
+                  `curl -sfL https://info.apiant.com/apiant-docs-mcp.js -o ~/.apiant-docs-mcp.js && curl -sfL https://info.apiant.com/write-doc.md -o ~/.claude/commands/write-doc.md`
                 );
                 setCopied(true);
                 setTimeout(() => setCopied(false), 2000);

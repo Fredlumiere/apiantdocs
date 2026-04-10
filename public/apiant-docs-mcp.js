@@ -30432,6 +30432,113 @@ Markdown: ![${filename}](${result.url})`
     };
   }
 );
+server.tool(
+  "docs_screenshot",
+  "Take a screenshot of a web page or specific element for documentation. Requires Playwright: npm install -g playwright && npx playwright install chromium",
+  {
+    url: external_exports3.string().describe("URL to screenshot"),
+    selector: external_exports3.string().optional().describe("CSS selector to capture a specific element (e.g. '.sidebar', '#main-content', 'form')"),
+    filename: external_exports3.string().optional().describe("Output filename (default: screenshot.png)"),
+    full_page: external_exports3.boolean().optional().describe("Capture full scrollable page (default: false, captures viewport only)"),
+    width: external_exports3.number().optional().describe("Viewport width in pixels (default: 1280)"),
+    height: external_exports3.number().optional().describe("Viewport height in pixels (default: 720)"),
+    wait_for: external_exports3.string().optional().describe("CSS selector to wait for before capturing (ensures element is loaded)"),
+    delay_ms: external_exports3.number().optional().describe("Extra delay in ms after page load before capturing (default: 0)"),
+    dark_mode: external_exports3.boolean().optional().describe("Emulate dark color scheme (default: false)")
+  },
+  async ({ url: url2, selector, filename, full_page, width, height, wait_for, delay_ms, dark_mode }) => {
+    const outFilename = filename || "screenshot.png";
+    try {
+      let chromium;
+      try {
+        const pw = require("playwright");
+        chromium = pw.chromium;
+      } catch {
+        return {
+          content: [{
+            type: "text",
+            text: `Playwright is not installed. Run these commands to set it up:
+
+npm install -g playwright
+npx playwright install chromium
+
+Then try again.`
+          }]
+        };
+      }
+      const browser = await chromium.launch({ headless: true });
+      const context = await browser.newContext({
+        viewport: { width: width || 1280, height: height || 720 },
+        colorScheme: dark_mode ? "dark" : "light"
+      });
+      const page = await context.newPage();
+      await page.goto(url2, { waitUntil: "networkidle" });
+      if (wait_for) {
+        await page.waitForSelector(wait_for, { timeout: 1e4 });
+      }
+      if (delay_ms && delay_ms > 0) {
+        await new Promise((r) => setTimeout(r, delay_ms));
+      }
+      let screenshotBuffer;
+      if (selector) {
+        const element = await page.$(selector);
+        if (!element) {
+          await browser.close();
+          return {
+            content: [{
+              type: "text",
+              text: `Element not found: ${selector}. Try a different CSS selector.`
+            }]
+          };
+        }
+        screenshotBuffer = await element.screenshot({ type: "png" });
+      } else {
+        screenshotBuffer = await page.screenshot({
+          type: "png",
+          fullPage: full_page || false
+        });
+      }
+      await browser.close();
+      const base64Data = screenshotBuffer.toString("base64");
+      const result = await apiFetch("/api/images", {
+        method: "POST",
+        body: JSON.stringify({ data: base64Data, filename: outFilename })
+      });
+      if (result.url) {
+        return {
+          content: [
+            {
+              type: "image",
+              data: base64Data,
+              mimeType: "image/png"
+            },
+            {
+              type: "text",
+              text: `Screenshot captured and uploaded.
+
+URL: ${result.url}
+
+Markdown: ![${outFilename}](${result.url})`
+            }
+          ]
+        };
+      }
+      return {
+        content: [{
+          type: "text",
+          text: `Screenshot taken but upload failed: ${JSON.stringify(result)}`
+        }]
+      };
+    } catch (err) {
+      return {
+        content: [{
+          type: "text",
+          text: `Screenshot error: ${err instanceof Error ? err.message : "Unknown error"}`
+        }]
+      };
+    }
+  }
+);
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);

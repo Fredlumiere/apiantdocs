@@ -14,18 +14,40 @@ You are writing documentation for APIANT's docs platform (info.apiant.com) using
 | `docs_search` | Search docs by keyword |
 | `docs_create` | Create a new doc |
 | `docs_update` | Update an existing doc |
-| `docs_upload_image` | Upload an image, get a public URL |
+| `docs_upload_image` | Upload a local image file, get a public URL |
+| `docs_screenshot` | Capture a web page or element, auto-upload (requires Playwright) |
 | `docs_chat` | Ask questions about existing docs |
 | `docs_version` | Check for MCP server updates |
 
 ## Workflow: Writing a Doc with Images
 
 ### Step 1 — Gather images
-For each image needed:
+
+**Option A: Screenshot a web page or element (preferred for UI docs)**
+```
+docs_screenshot(
+  url: "https://example.com/page",
+  selector: ".main-content",          // optional: capture specific element
+  filename: "step1-dashboard.png",
+  wait_for: ".loaded-indicator",       // optional: wait for element
+  dark_mode: true                      // optional: match dark theme
+)
+```
+Returns the URL and markdown tag automatically.
+
+**Option B: Upload a local image file**
 ```
 docs_upload_image(file_path="/path/to/image.png", filename="descriptive-name.png")
 ```
+
 Save the returned URL for each image.
+
+**Screenshot tips:**
+- Use `selector` to capture just the relevant UI element, not the full page
+- Use `wait_for` if content loads dynamically
+- Use `delay_ms: 1000` if animations need to finish
+- Use `full_page: true` for long scrollable pages
+- Requires Playwright: `npm install -g playwright && npx playwright install chromium`
 
 ### Step 2 — Write the markdown
 Structure the doc with:

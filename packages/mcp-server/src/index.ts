@@ -359,6 +359,119 @@ server.tool(
   }
 );
 
+// docs_screenshot — capture a web page or element using Playwright
+server.tool(
+  "docs_screenshot",
+  "Take a screenshot of a web page or specific element for documentation. Requires Playwright: npm install -g playwright && npx playwright install chromium",
+  {
+    url: z.string().describe("URL to screenshot"),
+    selector: z.string().optional().describe("CSS selector to capture a specific element (e.g. '.sidebar', '#main-content', 'form')"),
+    filename: z.string().optional().describe("Output filename (default: screenshot.png)"),
+    full_page: z.boolean().optional().describe("Capture full scrollable page (default: false, captures viewport only)"),
+    width: z.number().optional().describe("Viewport width in pixels (default: 1280)"),
+    height: z.number().optional().describe("Viewport height in pixels (default: 720)"),
+    wait_for: z.string().optional().describe("CSS selector to wait for before capturing (ensures element is loaded)"),
+    delay_ms: z.number().optional().describe("Extra delay in ms after page load before capturing (default: 0)"),
+    dark_mode: z.boolean().optional().describe("Emulate dark color scheme (default: false)"),
+  },
+  async ({ url, selector, filename, full_page, width, height, wait_for, delay_ms, dark_mode }) => {
+    const outFilename = filename || "screenshot.png";
+
+    try {
+      // Dynamic import — Playwright must be installed on the user's machine
+      let chromium;
+      try {
+        const pw = require("playwright");
+        chromium = pw.chromium;
+      } catch {
+        return {
+          content: [{
+            type: "text" as const,
+            text: `Playwright is not installed. Run these commands to set it up:\n\nnpm install -g playwright\nnpx playwright install chromium\n\nThen try again.`,
+          }],
+        };
+      }
+
+      const browser = await chromium.launch({ headless: true });
+      const context = await browser.newContext({
+        viewport: { width: width || 1280, height: height || 720 },
+        colorScheme: dark_mode ? "dark" : "light",
+      });
+      const page = await context.newPage();
+
+      await page.goto(url, { waitUntil: "networkidle" });
+
+      if (wait_for) {
+        await page.waitForSelector(wait_for, { timeout: 10000 });
+      }
+
+      if (delay_ms && delay_ms > 0) {
+        await new Promise((r) => setTimeout(r, delay_ms));
+      }
+
+      let screenshotBuffer: Buffer;
+
+      if (selector) {
+        const element = await page.$(selector);
+        if (!element) {
+          await browser.close();
+          return {
+            content: [{
+              type: "text" as const,
+              text: `Element not found: ${selector}. Try a different CSS selector.`,
+            }],
+          };
+        }
+        screenshotBuffer = await element.screenshot({ type: "png" });
+      } else {
+        screenshotBuffer = await page.screenshot({
+          type: "png",
+          fullPage: full_page || false,
+        });
+      }
+
+      await browser.close();
+
+      // Upload to API
+      const base64Data = screenshotBuffer.toString("base64");
+      const result = await apiFetch("/api/images", {
+        method: "POST",
+        body: JSON.stringify({ data: base64Data, filename: outFilename }),
+      });
+
+      if (result.url) {
+        return {
+          content: [
+            {
+              type: "image" as const,
+              data: base64Data,
+              mimeType: "image/png",
+            },
+            {
+              type: "text" as const,
+              text: `Screenshot captured and uploaded.\n\nURL: ${result.url}\n\nMarkdown: ![${outFilename}](${result.url})`,
+            },
+          ],
+        };
+      }
+
+      return {
+        content: [{
+          type: "text" as const,
+          text: `Screenshot taken but upload failed: ${JSON.stringify(result)}`,
+        }],
+      };
+    } catch (err) {
+      return {
+        content: [{
+          type: "text" as const,
+          text: `Screenshot error: ${err instanceof Error ? err.message : "Unknown error"}`,
+        }],
+      };
+    }
+  }
+);
+
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);

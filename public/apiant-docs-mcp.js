@@ -30339,6 +30339,63 @@ server.tool(
     return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
   }
 );
+server.tool(
+  "docs_upload_image",
+  "Upload an image file and get a public URL to embed in documentation markdown. Accepts a local file path or base64 data.",
+  {
+    file_path: external_exports3.string().optional().describe("Absolute path to a local image file"),
+    base64_data: external_exports3.string().optional().describe("Base64-encoded image data (use if file_path not available)"),
+    filename: external_exports3.string().describe("Filename with extension (e.g. 'diagram.png')")
+  },
+  async ({ file_path, base64_data, filename }) => {
+    let data;
+    if (file_path) {
+      try {
+        const fs = await import("fs");
+        const buffer = fs.readFileSync(file_path);
+        data = buffer.toString("base64");
+      } catch (err) {
+        return {
+          content: [{
+            type: "text",
+            text: `Error reading file: ${err instanceof Error ? err.message : "Unknown error"}`
+          }]
+        };
+      }
+    } else if (base64_data) {
+      data = base64_data;
+    } else {
+      return {
+        content: [{
+          type: "text",
+          text: "Either file_path or base64_data is required."
+        }]
+      };
+    }
+    const result = await apiFetch("/api/images", {
+      method: "POST",
+      body: JSON.stringify({ data, filename })
+    });
+    if (result.url) {
+      return {
+        content: [{
+          type: "text",
+          text: `Image uploaded successfully.
+
+URL: ${result.url}
+
+Markdown: ![${filename}](${result.url})`
+        }]
+      };
+    }
+    return {
+      content: [{
+        type: "text",
+        text: `Upload failed: ${JSON.stringify(result)}`
+      }]
+    };
+  }
+);
 async function main() {
   const transport = new StdioServerTransport();
   await server.connect(transport);

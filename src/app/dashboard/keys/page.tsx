@@ -478,6 +478,64 @@ export default function ApiKeysPage() {
           </div>
         )}
 
+        {/* Update & Skill Install */}
+        <div
+          style={{
+            marginTop: "var(--space-8)",
+            padding: "var(--space-6)",
+            borderRadius: "var(--radius-lg)",
+            border: "1px solid var(--border-primary)",
+            background: "var(--bg-secondary)",
+          }}
+        >
+          <h2 style={{ fontSize: "16px", fontWeight: 600, color: "var(--text-primary)", marginBottom: "var(--space-2)" }}>
+            Claude Code Setup
+          </h2>
+          <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "var(--space-4)", lineHeight: 1.5 }}>
+            Install or update the MCP server and the <code style={{ fontSize: "12px", fontFamily: "var(--font-geist-mono), monospace" }}>/write-doc</code> skill:
+          </p>
+          <div style={{ position: "relative" }}>
+            <pre
+              style={{
+                padding: "var(--space-3)",
+                paddingRight: "60px",
+                background: "var(--bg-primary)",
+                borderRadius: "var(--radius-sm)",
+                border: "1px solid var(--border-primary)",
+                fontSize: "12px",
+                fontFamily: "var(--font-geist-mono), monospace",
+                color: "var(--text-secondary)",
+                whiteSpace: "pre-wrap",
+                wordBreak: "break-all",
+                lineHeight: 1.6,
+                margin: 0,
+              }}
+            >{`curl -sf https://info.apiant.com/apiant-docs-mcp.js -o ~/.apiant-docs-mcp.js && curl -sf https://info.apiant.com/write-doc.md -o ~/.claude/commands/write-doc.md`}</pre>
+            <button
+              onClick={async () => {
+                await navigator.clipboard.writeText(
+                  `curl -sf https://info.apiant.com/apiant-docs-mcp.js -o ~/.apiant-docs-mcp.js && curl -sf https://info.apiant.com/write-doc.md -o ~/.claude/commands/write-doc.md`
+                );
+                setCopied(true);
+                setTimeout(() => setCopied(false), 2000);
+              }}
+              style={{
+                ...secondaryButtonStyle,
+                position: "absolute",
+                top: "6px",
+                right: "6px",
+                padding: "4px 10px",
+                fontSize: "12px",
+              }}
+            >
+              {copied ? "Copied" : "Copy"}
+            </button>
+          </div>
+          <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginTop: "var(--space-3)", lineHeight: 1.5 }}>
+            Then type <code style={{ fontSize: "12px", fontFamily: "var(--font-geist-mono), monospace", color: "var(--text-secondary)" }}>/mcp</code> in Claude Code to reconnect.
+            Use <code style={{ fontSize: "12px", fontFamily: "var(--font-geist-mono), monospace", color: "var(--text-secondary)" }}>/write-doc</code> to create docs with images.
+          </p>
+        </div>
       </main>
     </div>
   );

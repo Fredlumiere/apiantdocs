@@ -42,3 +42,4 @@ next-env.d.ts
 migration/
 migration2/
 scripts/dist/
+.env*.local

@@ -109,21 +109,63 @@ export default async function DocPage({ params }: Props) {
     relatedDocs = related || [];
   }
 
-  // Clean body: strip Archbee JSX tags that don't render in Markdown
+  // Clean body: transform Archbee JSX tags into forms react-markdown can render.
+  // Archbee <hint> blocks use MDX indentation (no closing tag): content is 2-space
+  // indented; block ends at the first non-indented, non-blank line.
+  const transformHint = (match: string, type: string, content: string) => {
+    const variant = (type || "info").toLowerCase();
+    const normalized = ["info", "note"].includes(variant) ? "info"
+      : ["warning", "warn"].includes(variant) ? "warning"
+      : ["danger", "error"].includes(variant) ? "danger"
+      : ["success", "tip"].includes(variant) ? "success"
+      : "info";
+    const cleaned = content
+      .split("\n")
+      .map((line: string) => line.replace(/^ {2}/, ""))
+      .join("\n")
+      .trim();
+    return `\n\n<div class="callout callout-${normalized}">\n\n${cleaned}\n\n</div>\n\n`;
+  };
+
   const cleanBody = (doc.body || "")
     .replace(/<LinkArray[\s\S]*?<\/LinkArray>/gi, "")
     .replace(/<LinkArrayItem[\s\S]*?\/>/gi, "")
     .replace(/<Image[\s\S]*?(?:\/>|<\/Image>)/gi, "")
-    .replace(/<Callout[\s\S]*?<\/Callout>/gi, "")
-    .replace(/<hint\s+style="(\w+)">([\s\S]*?)<\/hint>/gi, (_m: string, type: string, content: string) => {
-      const labels: Record<string, string> = { info: "Info", warning: "Warning", danger: "Danger", tip: "Tip", success: "Tip" };
-      return `> **${labels[type] || "Note"}:** ${content.trim()}\n`;
-    })
-    .replace(/<hint[^>]*>([\s\S]*?)<\/hint>/gi, (_m: string, content: string) => `> ${content.trim()}\n`)
+    .replace(/<script[\s\S]*?<\/script>/gi, (m: string) => `\n\n\`\`\`html\n${m}\n\`\`\`\n\n`)
+    .replace(
+      /<hint\s+type="(\w+)"[^>]*>((?:\n  [^\n]*|\n[ \t]*(?=\n))+)/gi,
+      transformHint
+    )
+    .replace(
+      /<hint\s+style="(\w+)"[^>]*>((?:\n  [^\n]*|\n[ \t]*(?=\n))+)/gi,
+      transformHint
+    )
+    // Remove any stray closing tags from docs that did use them
+    .replace(/<\/hint>/gi, "")
     .trim();
 
   // Extract headings server-side for TOC
   const headings = extractHeadings(cleanBody);
+
+  // Auto-link URLs in plain text (for descriptions). External links open in a new tab.
+  const renderWithLinks = (text: string) => {
+    const parts = text.split(/(https?:\/\/[^\s)]+)/g);
+    return parts.map((part, i) =>
+      /^https?:\/\//.test(part) ? (
+        <a
+          key={i}
+          href={part}
+          target="_blank"
+          rel="noopener noreferrer"
+          style={{ color: "var(--accent-primary)", textDecoration: "underline" }}
+        >
+          {part}
+        </a>
+      ) : (
+        part
+      )
+    );
+  };
 
   // Format last updated
   const updatedAt = doc.updated_at
@@ -207,7 +249,7 @@ export default async function DocPage({ params }: Props) {
               color: "var(--text-secondary)",
               lineHeight: 1.5,
             }}>
-              {doc.description}
+              {renderWithLinks(doc.description)}
             </p>
           )}
           {docTags.length > 0 && (
@@ -242,9 +284,8 @@ export default async function DocPage({ params }: Props) {
             </h2>
             <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
               {relatedDocs.map((rd) => (
-                <a
+                <div
                   key={rd.slug}
-                  href={`/docs/${rd.slug}`}
                   style={{
                     display: "flex",
                     justifyContent: "space-between",
@@ -252,16 +293,23 @@ export default async function DocPage({ params }: Props) {
                     padding: "var(--space-3) var(--space-4)",
                     borderRadius: "var(--radius-md)",
                     border: "1px solid var(--border-primary)",
-                    color: "var(--text-primary)",
-                    textDecoration: "none",
                     fontSize: "14px",
                     transition: "border-color 0.15s, background 0.15s",
                   }}
                   className="related-doc-link"
                 >
-                  <span>{rd.title}</span>
+                  <a
+                    href={`/docs/${rd.slug}`}
+                    style={{
+                      color: "var(--text-primary)",
+                      textDecoration: "none",
+                      flex: 1,
+                    }}
+                  >
+                    {rd.title}
+                  </a>
                   <TagList tags={(rd.tags || []).filter((t: string) => docTags.includes(t))} compact />
-                </a>
+                </div>
               ))}
             </div>
             <style>{`

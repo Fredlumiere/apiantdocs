@@ -172,9 +172,25 @@ export function SidebarTree({ tree }: SidebarTreeProps) {
     grouped[key].push(node);
   }
 
+  // Pin product order so equal-sort_order groups render deterministically.
+  // Anything not in this list renders last in whatever order it appears.
+  const PRODUCT_ORDER = ["getting-started", "platform", "mcp", "api-apps", "general"];
+  // api-apps is a flat catalog of integrations — always alphabetize by title for discoverability.
+  // Other products (platform, mcp) respect sort_order from the DB.
+  const ALPHA_PRODUCTS = new Set(["api-apps"]);
+  for (const key of Object.keys(grouped)) {
+    if (ALPHA_PRODUCTS.has(key)) {
+      grouped[key].sort((a, b) => a.title.localeCompare(b.title));
+    }
+  }
+  const orderedGroups: [string, TreeNode[]][] = [
+    ...PRODUCT_ORDER.filter((k) => grouped[k]).map((k): [string, TreeNode[]] => [k, grouped[k]]),
+    ...Object.entries(grouped).filter(([k]) => !PRODUCT_ORDER.includes(k)),
+  ];
+
   return (
     <nav>
-      {Object.entries(grouped).map(([product, nodes]) => (
+      {orderedGroups.map(([product, nodes]) => (
         <div key={product} style={{ marginBottom: "var(--space-6)" }}>
           <h3 style={{
             fontSize: "11px",

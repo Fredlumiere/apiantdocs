@@ -29,6 +29,7 @@ const limit = limitArg ? parseInt(limitArg.split("=")[1], 10) : 5;
 const commit = args.includes("--commit");
 const slugArg = args.find((a) => a.startsWith("--slug="));
 const forcedSlug = slugArg ? slugArg.split("=")[1] : null;
+const badOnly = args.includes("--bad-only");
 
 const SYSTEM_PROMPT = `You write concise documentation descriptions for the APIANT platform docs site.
 
@@ -36,8 +37,10 @@ HARD RULES (non-negotiable):
 - Output length MUST be 120-170 characters. Count your characters. If your draft is over 170, rewrite shorter.
 - End in a period.
 - Plain prose. No markdown, no URLs, no HTML, no quotes around the output.
-- Lead with what the page covers. Never start with "Learn how to", "Discover", "Find out".
-- Be specific about the feature/concept. Do not say "this document", "this guide", or restate the title.
+- NEVER start with "Learn", "Discover", "Find out", or "Explore". Start with the noun/concept the page covers.
+- NEVER use phrases like "this document", "this guide", "this article", "this page", "the document", or "the guide". Describe the content itself, not the artifact.
+- NEVER include IDs, UUIDs, hashes, or alphanumeric tokens — only human-readable prose.
+- Do not restate the title verbatim.
 
 Respond with ONLY the description text, nothing else.`;
 
@@ -67,6 +70,10 @@ function validate(desc: string): string | null {
   if (desc.length > 240) return `too long (${desc.length} chars)`;
   if (!/[.!?]$/.test(desc)) return "no ending punctuation";
   if (/\*\*|__|\[.*\]\(|<[a-z]/i.test(desc)) return "contains markdown/html";
+  if (/^(Learn |Discover |Find out|Explore )/i.test(desc)) return "forbidden opener";
+  if (/\b(this|the) (document|guide|article|page|section)\b/i.test(desc)) return "meta self-reference";
+  if (/\bdocument with the ID\b|\bwith the ID [A-Za-z0-9_-]{6,}/i.test(desc)) return "contains Archbee ID leak";
+  if (/[A-Za-z0-9]{6,}-[A-Za-z0-9]{4,}--[A-Za-z0-9]{4,}/.test(desc)) return "contains Archbee ID pattern";
   return null;
 }
 
@@ -92,6 +99,10 @@ async function main() {
   const candidates = (data || []).filter((d) => {
     if (forcedSlug) return true;
     const desc = d.description || "";
+    if (badOnly) {
+      // Re-regenerate any description that fails quality validation (even if not mid-word truncated)
+      return validate(desc) !== null;
+    }
     return desc.length >= 200 && desc.length <= 270 && /[a-z]$/.test(desc);
   });
 

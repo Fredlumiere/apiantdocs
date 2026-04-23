@@ -132,15 +132,14 @@ async function main() {
 
     if (!commit) continue;
 
-    // Write audit row to doc_versions
+    // Write audit row to doc_versions (schema: title, body, changed_by, change_summary)
     const { error: verErr } = await prod.from("doc_versions").insert({
       document_id: pd.id,
       version: pd.version,
       title: pd.title,
-      description: pd.description,
       body: pd.body,
       changed_by: "sync-to-prod",
-      change_note: `pre-sync snapshot (${changedFields})`,
+      change_summary: `pre-sync snapshot (${changedFields})`,
     });
     if (verErr) {
       console.log(`  [warn] doc_versions insert failed: ${verErr.message}`);

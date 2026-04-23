@@ -13,7 +13,7 @@ export function SidebarResize() {
     const saved = localStorage.getItem("sidebar-width");
     if (saved) {
       const w = parseInt(saved);
-      if (w >= 180 && w <= 500) {
+      if (w >= 180 && w <= 600) {
         setWidth(w);
         document.documentElement.style.setProperty("--sidebar-width", `${w}px`);
       }
@@ -34,7 +34,7 @@ export function SidebarResize() {
     function onMouseMove(e: MouseEvent) {
       if (!isDragging.current) return;
       const delta = e.clientX - startX.current;
-      const newWidth = Math.min(500, Math.max(180, startWidth.current + delta));
+      const newWidth = Math.min(600, Math.max(180, startWidth.current + delta));
       setWidth(newWidth);
       document.documentElement.style.setProperty("--sidebar-width", `${newWidth}px`);
     }

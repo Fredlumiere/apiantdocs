@@ -69,3 +69,55 @@ export function buildTree(docs: FlatDoc[]): TreeNode[] {
 
   return roots;
 }
+
+// Sidebar-mirroring constants. Keep in sync with sidebar-tree.tsx so prev/next
+// walks the exact same order the reader sees in the sidebar.
+const PRODUCT_ORDER = ["getting-started", "platform", "platform-ui", "mcp", "api-apps", "general"];
+const ALPHA_PRODUCTS = new Set(["api-apps"]);
+
+// Flatten the full sidebar tree into a DFS-ordered list — the same reading
+// order a user gets by clicking through the sidebar top-to-bottom. Used for
+// prev/next so the bottom-of-page navigation matches sidebar position.
+//
+// The full tree must be passed (not a per-product slice) because the sidebar
+// can nest cross-product pages under a parent — e.g., the platform-ui page
+// "Automations" (slug: automation-editor/key-concepts) is rendered under the
+// platform-section parent "The Four Core Objects". A per-product flatten would
+// break the prev/next chain across those nesting points.
+export function flattenTreeForSidebar(roots: TreeNode[]): TreeNode[] {
+  // Group roots by product, mirroring sidebar-tree.tsx's grouping.
+  const grouped: Record<string, TreeNode[]> = {};
+  for (const node of roots) {
+    const key = node.product || "general";
+    if (!grouped[key]) grouped[key] = [];
+    grouped[key].push(node);
+  }
+
+  // ALPHA_PRODUCTS get root-level alphabetization by title; everything else
+  // keeps DB sort_order (already applied by buildTree).
+  for (const key of Object.keys(grouped)) {
+    if (ALPHA_PRODUCTS.has(key)) {
+      grouped[key].sort((a, b) => a.title.localeCompare(b.title));
+    }
+  }
+
+  // Walk products in pinned order, then any unknowns in their natural order.
+  const orderedGroups: TreeNode[][] = [
+    ...PRODUCT_ORDER.filter((k) => grouped[k]).map((k) => grouped[k]),
+    ...Object.entries(grouped).filter(([k]) => !PRODUCT_ORDER.includes(k)).map(([, v]) => v),
+  ];
+
+  const out: TreeNode[] = [];
+  function walk(node: TreeNode) {
+    out.push(node);
+    for (const child of node.children) {
+      walk(child);
+    }
+  }
+  for (const group of orderedGroups) {
+    for (const node of group) {
+      walk(node);
+    }
+  }
+  return out;
+}

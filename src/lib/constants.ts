@@ -1,5 +1,6 @@
 export const PRODUCT_LABELS: Record<string, string> = {
   platform: "Platform",
+  "platform-ui": "Platform UI (Fallback)",
   "api-apps": "API Apps",
   mcp: "MCP",
   general: "General",

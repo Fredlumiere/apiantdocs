@@ -2,6 +2,7 @@
 // Auto-generated redirect map from Archbee migration
 // Add this to your next.config.ts redirects() function
 export const archbeeRedirects = [
+    { source: "/docs/apiant-for-builders/tenants-and-linked-accounts", destination: "/docs/automation-editor/account-management/tenants-and-linked-accounts", permanent: true },
     { source: "/integrators", destination: "/docs/apiant-for-builders", permanent: true },
     { source: "/rSvm-apiant-for-integrators", destination: "/docs/apiant-for-builders", permanent: true },
     { source: "/apiant-for-builders", destination: "/docs/apiant-for-builders", permanent: true },
@@ -1075,5 +1076,8 @@ export const archbeeRedirects = [
     { source: "/tagging-an-automation", destination: "/docs/automation-editor/managing-automations/gear-menu/manage-menu/tagging-an-automation", permanent: true },
     { source: "/AzLU-versioning", destination: "/docs/automation-editor/managing-automations/gear-menu/manage-menu/versioning", permanent: true },
     { source: "/-tYb-view-an-automations-created-and-last-edited-dates", destination: "/docs/automation-editor/managing-automations/gear-menu/manage-menu/view-an-automation-s-created-and-last-edited-dates", permanent: true },
-    { source: "/view-an-automation-s-created-and-last-edited-dates", destination: "/docs/automation-editor/managing-automations/gear-menu/manage-menu/view-an-automation-s-created-and-last-edited-dates", permanent: true }
+    { source: "/view-an-automation-s-created-and-last-edited-dates", destination: "/docs/automation-editor/managing-automations/gear-menu/manage-menu/view-an-automation-s-created-and-last-edited-dates", permanent: true },
+    { source: "/docs/building-with-the-plugin/bidirectional-sync", destination: "/docs/building-with-the-plugin/patterns/two-way-sync", permanent: true },
+    { source: "/docs/apiant-for-builders/development-server", destination: "/docs/apiant-for-builders/development-system", permanent: true },
+    { source: "/docs/operating-in-production/multi-tenant-operations", destination: "/docs/operating-in-production/multi-account-operations", permanent: true }
 ];

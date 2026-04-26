@@ -174,7 +174,7 @@ export function SidebarTree({ tree }: SidebarTreeProps) {
 
   // Pin product order so equal-sort_order groups render deterministically.
   // Anything not in this list renders last in whatever order it appears.
-  const PRODUCT_ORDER = ["getting-started", "platform", "mcp", "api-apps", "general"];
+  const PRODUCT_ORDER = ["getting-started", "platform", "platform-ui", "mcp", "api-apps", "general"];
   // api-apps is a flat catalog of integrations — always alphabetize by title for discoverability.
   // Other products (platform, mcp) respect sort_order from the DB.
   const ALPHA_PRODUCTS = new Set(["api-apps"]);

@@ -43,3 +43,4 @@ migration/
 migration2/
 scripts/dist/
 .env*.local
+/baselines/

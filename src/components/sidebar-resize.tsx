@@ -8,18 +8,6 @@ export function SidebarResize() {
   const startX = useRef(0);
   const startWidth = useRef(0);
 
-  useEffect(() => {
-    // Load saved width from localStorage
-    const saved = localStorage.getItem("sidebar-width");
-    if (saved) {
-      const w = parseInt(saved);
-      if (w >= 180 && w <= 600) {
-        setWidth(w);
-        document.documentElement.style.setProperty("--sidebar-width", `${w}px`);
-      }
-    }
-  }, []);
-
   const onMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     isDragging.current = true;

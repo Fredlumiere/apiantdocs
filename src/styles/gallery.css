@@ -1,0 +1,679 @@
+/*
+ * Gallery components — ported from apiant.com/ai-operability.html skill section.
+ * Selectors and class names match Fred's HTML so the animated SVG glyphs keep working.
+ *
+ * Palette mapping:
+ *   Fred's --green        -> --accent-primary
+ *   Fred's --green-dim    -> --accent-primary-muted
+ *   Fred's --text         -> --text-primary
+ *   Fred's --muted        -> --text-secondary
+ *   Fred's --faint        -> --text-tertiary
+ *   Fred's --border       -> --border-primary
+ *   Fred's --card         -> --bg-surface
+ *   Fred's --card-hi      -> --bg-surface-hover
+ */
+
+.apiant-gallery-cat
+{
+  margin: 32px auto 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 4px;
+  max-width: 1100px;
+}
+
+.apiant-gallery-cat .cat-ico
+{
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: var(--accent-primary-muted);
+  border: 1px solid var(--border-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+}
+
+.apiant-gallery-cat .cat-ico svg
+{
+  width: 22px;
+  height: 22px;
+  stroke: var(--accent-primary);
+  fill: none;
+  stroke-width: 1.7;
+}
+
+.apiant-gallery-cat .cat-title
+{
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  color: var(--text-primary);
+}
+
+.apiant-gallery-cat .cat-desc
+{
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.apiant-gallery-cat .cat-count
+{
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  margin-left: auto;
+}
+
+.apiant-gallery-grid
+{
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+  gap: 14px;
+  max-width: 1240px;
+  margin: 0 auto 40px;
+}
+
+.apiant-gallery-card
+{
+  position: relative;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 18px;
+  transition: transform 0.2s, background 0.2s, border-color 0.2s;
+  overflow: hidden;
+  display: block;
+  color: inherit;
+  text-decoration: none;
+}
+
+.apiant-gallery-card::before
+{
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(400px circle at 50% 0%, rgba(26, 183, 89, 0.08), transparent 40%);
+  opacity: 0;
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+
+.apiant-gallery-card:hover
+{
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.055);
+  border-color: rgba(26, 183, 89, 0.28);
+}
+
+.apiant-gallery-card:hover::before
+{
+  opacity: 1;
+}
+
+.apiant-gallery-card .glyph
+{
+  height: 64px;
+  margin-bottom: 14px;
+  display: flex;
+  align-items: flex-start;
+}
+
+.apiant-gallery-card .name
+{
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--accent-primary);
+  letter-spacing: 0.3px;
+  margin-bottom: 6px;
+}
+
+.apiant-gallery-card .title
+{
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 8px;
+  line-height: 1.3;
+  color: var(--text-primary);
+}
+
+.apiant-gallery-card .desc
+{
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* Glyph library — Fred uses .g as the root class inside every card SVG.
+   These selectors rely on .g existing on the svg element. */
+.apiant-gallery-card .g
+{
+  width: 64px;
+  height: 64px;
+  display: block;
+}
+
+.apiant-gallery-card .g circle,
+.apiant-gallery-card .g rect,
+.apiant-gallery-card .g path,
+.apiant-gallery-card .g line,
+.apiant-gallery-card .g polyline,
+.apiant-gallery-card .g polygon
+{
+  fill: none;
+  stroke: var(--gc, var(--accent-primary));
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.apiant-gallery-card .g .fill
+{
+  fill: var(--gc, var(--accent-primary));
+  stroke: none;
+}
+
+.apiant-gallery-card .g .soft
+{
+  opacity: 0.35;
+}
+
+.apiant-gallery-card .g .tk
+{
+  stroke-width: 2.2;
+}
+
+.apiant-gallery-card:hover .g .anim
+{
+  animation-play-state: running;
+}
+
+/* DEV/PROD env toggle pill — ported from ai-operability.html (lines 143–144, 329–335).
+   Palette mapping: --mono -> --font-geist-mono, --faint -> --text-tertiary,
+   --border -> --border-primary, --green -> --accent-primary. */
+.apiant-gallery-card .env-toggle
+{
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: inline-flex;
+  border: 1px solid var(--border-primary);
+  border-radius: 100px;
+  background: rgba(255, 255, 255, 0.02);
+  padding: 2px;
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  z-index: 1;
+}
+
+.apiant-gallery-card .env-toggle .env-seg
+{
+  background: transparent;
+  border: none;
+  color: var(--text-tertiary);
+  font-size: 9.5px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 6px 10px;
+  border-radius: 100px;
+  cursor: pointer;
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  line-height: 1;
+  min-height: 24px;
+  min-width: 36px;
+}
+
+.apiant-gallery-card .env-toggle .env-seg.active[data-env="dev"]
+{
+  background: rgba(92, 200, 255, 0.14);
+  color: #5cc8ff;
+  box-shadow: 0 0 0 1px rgba(92, 200, 255, 0.3);
+}
+
+.apiant-gallery-card .env-toggle .env-seg.active[data-env="prod"]
+{
+  background: rgba(245, 183, 72, 0.14);
+  color: #f5b748;
+  box-shadow: 0 0 0 1px rgba(245, 183, 72, 0.3);
+}
+
+.apiant-gallery-card .env-toggle .env-seg:focus
+{
+  outline: none;
+  color: var(--text-primary);
+}
+
+.apiant-gallery-card .env-toggle .env-seg:focus-visible
+{
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+@media (hover: none)
+{
+  .apiant-gallery-card .env-toggle .env-seg
+  {
+    min-height: 32px;
+    min-width: 44px;
+    font-size: 10px;
+    padding: 8px 12px;
+  }
+}
+
+/* Base tag pill — absolute-positioned in the top-right of the card, used by
+   SkillCard's optional `tag` prop. Colored variants via .t-docs / .t-dev /
+   .t-prod below. */
+.apiant-gallery-card .tag
+{
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 9px;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  padding: 3px 7px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  background: transparent;
+}
+
+.apiant-gallery-card.t-docs .tag
+{
+  color: #c084fc;
+  border-color: rgba(192, 132, 252, 0.3);
+  background: rgba(192, 132, 252, 0.07);
+}
+
+/* .t-dev / .t-prod tint classes — ported for parity with Fred's ai-operability.html
+   (lines 143–144); not currently used by our ToolCard (which uses env-toggle
+   pills instead of a static tag), kept for future cards that might opt in. */
+.apiant-gallery-card.t-dev .tag
+{
+  color: #5cc8ff;
+  border-color: rgba(92, 200, 255, 0.3);
+  background: rgba(92, 200, 255, 0.07);
+}
+
+.apiant-gallery-card.t-prod .tag
+{
+  color: #f5b748;
+  border-color: rgba(245, 183, 72, 0.3);
+  background: rgba(245, 183, 72, 0.07);
+}
+
+/* When a ToolCard is toggled to PROD, tint the card amber and append a
+   READ-ONLY badge after the tool name. Ported verbatim from Fred's
+   ai-operability.html (lines 336–337). */
+.apiant-gallery-card.env-prod
+{
+  border-color: rgba(245, 183, 72, 0.28);
+  background: rgba(245, 183, 72, 0.02);
+}
+
+.apiant-gallery-card.env-prod .name::after
+{
+  content: "READ-ONLY";
+  display: inline-block;
+  margin-left: 8px;
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 9px;
+  letter-spacing: 1.2px;
+  color: #f5b748;
+  background: rgba(245, 183, 72, 0.08);
+  border: 1px solid rgba(245, 183, 72, 0.3);
+  padding: 2px 6px;
+  border-radius: 4px;
+  vertical-align: middle;
+}
+
+/* === Card detail drawer — ported from ai-operability.html (lines 280–326).
+   Opens on click, shows name/title/desc + optional READ-ONLY or MUTATES pill
+   and a "When to use" block. Clicking the backdrop, hitting Esc, or using the
+   X button closes it. Palette mapping: --card -> #0e1113 (Fred's literal),
+   --border -> --border-primary, --muted -> --text-secondary,
+   --text -> --text-primary, --faint -> --text-tertiary,
+   --green -> --accent-primary. */
+.drawer-backdrop
+{
+  position: fixed;
+  inset: 0;
+  background: rgba(8, 8, 10, 0.55);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  z-index: 90;
+  opacity: 0;
+  transition: opacity 0.24s ease;
+}
+
+.drawer-backdrop.visible
+{
+  opacity: 1;
+}
+
+.drawer
+{
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 480px;
+  max-width: 100vw;
+  background: #0e1113;
+  border-left: 1px solid var(--border-primary);
+  z-index: 91;
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+  box-shadow: -24px 0 80px rgba(0, 0, 0, 0.45);
+}
+
+.drawer.visible
+{
+  transform: translateX(0);
+}
+
+.drawer-head
+{
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--border-primary);
+  flex-wrap: wrap;
+}
+
+.drawer-cat-chip
+{
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--accent-primary);
+  background: var(--accent-primary-muted);
+  border: 1px solid rgba(26, 183, 89, 0.28);
+  padding: 4px 9px;
+  border-radius: 100px;
+}
+
+.drawer-name
+{
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+  flex: 1 1 100%;
+}
+
+.drawer-mutation
+{
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 9px;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  display: inline-block;
+}
+
+.drawer-mutation.mutates
+{
+  color: #ff9ccb;
+  background: rgba(255, 120, 180, 0.1);
+  border-color: rgba(255, 120, 180, 0.35);
+}
+
+.drawer-mutation.readonly
+{
+  color: #5cc8ff;
+  background: rgba(92, 200, 255, 0.08);
+  border-color: rgba(92, 200, 255, 0.3);
+}
+
+.drawer-close
+{
+  margin-left: auto;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 22px;
+  cursor: pointer;
+  padding: 0 4px;
+  line-height: 1;
+}
+
+.drawer-close:hover
+{
+  color: var(--text-primary);
+}
+
+.drawer-body
+{
+  overflow-y: auto;
+  flex: 1;
+  padding: 22px 22px 88px;
+  transition: opacity 0.2s ease;
+}
+
+.drawer-body.swapping
+{
+  opacity: 0;
+}
+
+.drawer-body section
+{
+  margin: 0 0 22px;
+}
+
+.drawer-body h5
+{
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 10px;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  margin: 0 0 8px;
+  font-weight: 600;
+}
+
+.drawer-desc p
+{
+  font-size: 14.5px;
+  line-height: 1.65;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.drawer-when
+{
+  background: rgba(92, 200, 255, 0.05);
+  border: 1px solid rgba(92, 200, 255, 0.18);
+  border-radius: 10px;
+  padding: 14px 16px;
+}
+
+.drawer-when h5
+{
+  color: #5cc8ff;
+}
+
+.drawer-when p
+{
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.drawer-tools .tool-pills
+{
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.drawer-tools .tool-pill
+{
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--accent-primary);
+  background: rgba(26, 183, 89, 0.08);
+  border: 1px solid rgba(26, 183, 89, 0.25);
+  padding: 4px 9px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+
+.drawer-tools .tool-pill:hover
+{
+  background: rgba(26, 183, 89, 0.16);
+  color: #fff;
+}
+
+.drawer-tools .tool-pill.tool-pill-static
+{
+  color: var(--text-secondary);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-primary);
+  cursor: default;
+}
+
+.drawer-tools .tool-pill.tool-pill-static:hover
+{
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-secondary);
+}
+
+.drawer-tools .tool-pill:focus-visible
+{
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+.drawer-foot
+{
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 22px;
+  border-top: 1px solid var(--border-primary);
+}
+
+.drawer-copy
+{
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 12px;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid var(--border-primary);
+  border-radius: 6px;
+  padding: 7px 12px;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.drawer-copy:hover
+{
+  color: var(--text-primary);
+  border-color: rgba(255, 255, 255, 0.22);
+}
+
+.drawer-close:focus-visible,
+.drawer-copy:focus-visible
+{
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 2px;
+}
+
+@media (max-width: 760px)
+{
+  .drawer
+  {
+    top: auto;
+    width: 100vw;
+    height: 88vh;
+    border-left: none;
+    border-top: 1px solid var(--border-primary);
+    border-radius: 16px 16px 0 0;
+    transform: translateY(100%);
+  }
+
+  .drawer.visible
+  {
+    transform: translateY(0);
+  }
+
+  .drawer::before
+  {
+    content: "";
+    position: absolute;
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 36px;
+    height: 4px;
+    border-radius: 3px;
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  .drawer-head
+  {
+    padding-top: 22px;
+  }
+}
+
+/* Card click affordance — Fred uses cursor:pointer on `.card`. */
+.apiant-gallery-card[role="button"]
+{
+  cursor: pointer;
+}
+
+.apiant-gallery-card[role="button"]:focus
+{
+  outline: none;
+}
+
+.apiant-gallery-card[role="button"]:focus-visible
+{
+  outline: 2px solid var(--accent-primary);
+  outline-offset: 3px;
+  border-color: rgba(26, 183, 89, 0.45);
+}
+
+/* Keyframes — must be global. Idle state is paused (play state managed on hover). */
+@keyframes apiant-orbit { to { transform: rotate(360deg); } }
+@keyframes apiant-dash { to { stroke-dashoffset: -24; } }
+@keyframes apiant-dashB { to { stroke-dashoffset: -40; } }
+@keyframes apiant-blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.15; } }
+@keyframes apiant-travelH { 0% { transform: translateX(-18px); opacity: 0; } 20% { opacity: 1; } 80% { opacity: 1; } 100% { transform: translateX(18px); opacity: 0; } }
+@keyframes apiant-travelV { 0% { transform: translateY(-16px); opacity: 0; } 20% { opacity: 1; } 80% { opacity: 1; } 100% { transform: translateY(16px); opacity: 0; } }
+@keyframes apiant-rise { 0% { transform: translateY(4px); opacity: 0; } 40% { opacity: 1; } 100% { transform: translateY(-8px); opacity: 0; } }
+@keyframes apiant-rise2 { 0% { transform: translateY(8px); opacity: 0; } 50% { opacity: 1; } 100% { transform: translateY(-10px); opacity: 0; } }
+@keyframes apiant-spark { 0%, 100% { opacity: 0.2; transform: scale(0.9); } 50% { opacity: 1; transform: scale(1.15); } }
+@keyframes apiant-plug { 0%, 100% { transform: translateX(-5px); } 50% { transform: translateX(0); } }
+@keyframes apiant-draw { to { stroke-dashoffset: 0; } }
+@keyframes apiant-tick { 0% { stroke-dashoffset: 20; } 70% { stroke-dashoffset: 0; } 100% { stroke-dashoffset: 0; } }
+
+/* Aliases so Fred's original `style="animation:orbit ..."` attribute strings keep working verbatim. */
+@keyframes orbit { to { transform: rotate(360deg); } }
+@keyframes dash { to { stroke-dashoffset: -24; } }
+@keyframes dashB { to { stroke-dashoffset: -40; } }
+@keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.15; } }
+@keyframes travelH { 0% { transform: translateX(-18px); opacity: 0; } 20% { opacity: 1; } 80% { opacity: 1; } 100% { transform: translateX(18px); opacity: 0; } }
+@keyframes travelV { 0% { transform: translateY(-16px); opacity: 0; } 20% { opacity: 1; } 80% { opacity: 1; } 100% { transform: translateY(16px); opacity: 0; } }
+@keyframes rise { 0% { transform: translateY(4px); opacity: 0; } 40% { opacity: 1; } 100% { transform: translateY(-8px); opacity: 0; } }
+@keyframes rise2 { 0% { transform: translateY(8px); opacity: 0; } 50% { opacity: 1; } 100% { transform: translateY(-10px); opacity: 0; } }
+@keyframes spark { 0%, 100% { opacity: 0.2; transform: scale(0.9); } 50% { opacity: 1; transform: scale(1.15); } }
+@keyframes plug { 0%, 100% { transform: translateX(-5px); } 50% { transform: translateX(0); } }
+@keyframes draw { to { stroke-dashoffset: 0; } }
+@keyframes tick { 0% { stroke-dashoffset: 20; } 70% { stroke-dashoffset: 0; } 100% { stroke-dashoffset: 0; } }

@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { createServerClient } from "@/lib/supabase";
 import { MarkdownRenderer } from "@/components/markdown-renderer";
+import { MdxRenderer } from "@/components/mdx-renderer";
 import { Breadcrumbs } from "@/components/breadcrumbs";
 import { TableOfContents } from "@/components/table-of-contents";
 import { extractHeadings } from "@/lib/extract-headings";
@@ -9,6 +10,7 @@ import { ChildCards } from "@/components/child-cards";
 import { TagList } from "@/components/tag-list";
 import { EditButton } from "@/components/edit-button";
 import { DOC_TYPE_LABELS, PRODUCT_LABELS } from "@/lib/constants";
+import { buildTree, flattenTreeForSidebar, type FlatDoc } from "@/lib/doc-tree";
 import type { Metadata } from "next";
 
 interface Props {
@@ -66,24 +68,31 @@ export default async function DocPage({ params }: Props) {
     }
   }
 
-  // Fetch prev/next docs (same product, by sort_order)
-  const { data: siblings } = await supabase
+  // Fetch prev/next by walking the full sidebar tree (DFS). Earlier this used
+  // a flat sort_order query scoped to product, which produced wrong neighbors
+  // when the sidebar grouped pages under parents (e.g. "Install the Plugin"
+  // got "The Four Core Objects" as Previous), and missed cross-product nesting
+  // (Automations and Assemblies live in platform-ui but render under
+  // platform's "The Four Core Objects" via parent_id).
+  const { data: allDocs } = await supabase
     .from("documents")
-    .select("slug, title, sort_order")
+    .select("id, slug, title, doc_type, product, parent_id, sort_order")
     .eq("status", "published")
-    .eq("product", doc.product || "")
     .order("sort_order", { ascending: true });
+
+  const fullTree = buildTree((allDocs as FlatDoc[]) || []);
+  const flat = flattenTreeForSidebar(fullTree);
 
   let prevDoc: { slug: string; title: string } | null = null;
   let nextDoc: { slug: string; title: string } | null = null;
 
-  if (siblings && siblings.length > 1) {
-    const currentIndex = siblings.findIndex((s) => s.slug === fullSlug);
+  if (flat.length > 1) {
+    const currentIndex = flat.findIndex((n) => n.slug === fullSlug);
     if (currentIndex > 0) {
-      prevDoc = { slug: siblings[currentIndex - 1].slug, title: siblings[currentIndex - 1].title };
+      prevDoc = { slug: flat[currentIndex - 1].slug, title: flat[currentIndex - 1].title };
     }
-    if (currentIndex >= 0 && currentIndex < siblings.length - 1) {
-      nextDoc = { slug: siblings[currentIndex + 1].slug, title: siblings[currentIndex + 1].title };
+    if (currentIndex >= 0 && currentIndex < flat.length - 1) {
+      nextDoc = { slug: flat[currentIndex + 1].slug, title: flat[currentIndex + 1].title };
     }
   }
 
@@ -95,19 +104,62 @@ export default async function DocPage({ params }: Props) {
     .eq("status", "published")
     .order("sort_order", { ascending: true });
 
-  // Fetch related docs (share at least one tag, excluding self)
+  // Related docs — semantic similarity over body embeddings, scoped to same product.
+  // Tag overlap was too noisy on broad tags like "automation"; cosine on the body's
+  // first chunk picks up genuine topical neighbors.
   const docTags: string[] = doc.tags || [];
   let relatedDocs: { slug: string; title: string; tags: string[] }[] = [];
-  if (docTags.length > 0) {
-    const { data: related } = await supabase
-      .from("documents")
-      .select("slug, title, tags")
-      .eq("status", "published")
-      .neq("id", doc.id)
-      .overlaps("tags", docTags)
-      .limit(5);
-    relatedDocs = related || [];
+  {
+    const { data: srcEmb } = await supabase
+      .from("doc_embeddings")
+      .select("embedding")
+      .eq("document_id", doc.id)
+      .order("chunk_index", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (srcEmb?.embedding) {
+      const { data: matches } = await supabase.rpc("match_doc_embeddings", {
+        query_embedding: typeof srcEmb.embedding === "string" ? srcEmb.embedding : JSON.stringify(srcEmb.embedding),
+        match_count: 50,
+        filter_product: doc.product,
+      });
+      // Dedupe by document_id (multiple chunks per doc), drop self, keep highest similarity per doc.
+      const byDoc = new Map<string, { slug: string; title: string; similarity: number }>();
+      for (const m of (matches || []) as Array<{ document_id: string; slug: string; title: string; similarity: number }>) {
+        if (m.document_id === doc.id) continue;
+        const prev = byDoc.get(m.document_id);
+        if (!prev || m.similarity > prev.similarity) {
+          byDoc.set(m.document_id, { slug: m.slug, title: m.title, similarity: m.similarity });
+        }
+      }
+      // Only show as "related" if similarity clears 0.55 — voyage-3 cosine on truly related
+      // docs scores 0.6+; anything lower is shared vocabulary, not shared topic.
+      const RELATED_THRESHOLD = 0.55;
+      const ranked = [...byDoc.values()]
+        .filter((d) => d.similarity >= RELATED_THRESHOLD)
+        .sort((a, b) => b.similarity - a.similarity)
+        .slice(0, 5);
+      if (ranked.length > 0) {
+        const slugs = ranked.map((r) => r.slug);
+        const { data: tagged } = await supabase
+          .from("documents")
+          .select("slug, tags")
+          .in("slug", slugs);
+        const tagMap = new Map<string, string[]>((tagged || []).map((t: { slug: string; tags: string[] | null }) => [t.slug, t.tags || []]));
+        relatedDocs = ranked.map((r) => ({
+          slug: r.slug,
+          title: r.title,
+          tags: tagMap.get(r.slug) || [],
+        }));
+      }
+    }
   }
+
+  // MDX render path — documents with render_mode='mdx' get the React-component
+  // pipeline. Skip all the markdown cleanBody transforms (which would mangle
+  // JSX components like <SkillCard>) and skip TOC extraction (not reliable over
+  // JSX). The branch uses doc.body raw.
+  const isMdx = doc.render_mode === "mdx";
 
   // Clean body: transform Archbee JSX tags into forms react-markdown can render.
   // Archbee <hint> blocks use MDX indentation (no closing tag): content is 2-space
@@ -127,7 +179,27 @@ export default async function DocPage({ params }: Props) {
     return `\n\n<div class="callout callout-${normalized}">\n\n${cleaned}\n\n</div>\n\n`;
   };
 
-  const cleanBody = (doc.body || "")
+  // Branch early: MDX docs bypass all markdown transforms below. The regex
+  // sweeps (LinkArray, Image, script, hint) would shred JSX components like
+  // <SkillCard name=... title=...>. MDX content is handed to the MDX renderer
+  // raw; components are resolved via src/components/mdx-renderer.tsx.
+  let finalBody: string;
+  if (isMdx)
+  {
+    finalBody = (doc.body || "").trim();
+  }
+  else
+  {
+  // Markdown pipeline — unchanged from the pre-MDX behavior.
+  // Pull fenced code blocks out to placeholders first so prose-level transforms
+  // (like the <script> safety wrap below) don't mangle already-fenced content.
+  const codeBlocks: string[] = [];
+  const withPlaceholders = (doc.body || "").replace(/```[\s\S]*?```/g, (m: string) => {
+    codeBlocks.push(m);
+    return ` CODEBLOCK${codeBlocks.length - 1} `;
+  });
+
+  finalBody = withPlaceholders
     .replace(/<LinkArray[\s\S]*?<\/LinkArray>/gi, "")
     .replace(/<LinkArrayItem[\s\S]*?\/>/gi, "")
     .replace(/<Image[\s\S]*?(?:\/>|<\/Image>)/gi, "")
@@ -142,10 +214,14 @@ export default async function DocPage({ params }: Props) {
     )
     // Remove any stray closing tags from docs that did use them
     .replace(/<\/hint>/gi, "")
+    // Restore the original fenced code blocks
+    .replace(/ CODEBLOCK(\d+) /g, (_: string, i: string) => codeBlocks[parseInt(i, 10)])
     .trim();
+  }
 
-  // Extract headings server-side for TOC
-  const headings = extractHeadings(cleanBody);
+  // Extract headings server-side for TOC. The regex extractor is markdown-only;
+  // JSX would confuse it, so MDX docs skip TOC (empty array = TOC hidden).
+  const headings = isMdx ? [] : extractHeadings(finalBody);
 
   // Auto-link URLs in plain text (for descriptions). External links open in a new tab.
   const renderWithLinks = (text: string) => {
@@ -258,7 +334,10 @@ export default async function DocPage({ params }: Props) {
             </div>
           )}
         </div>
-        {cleanBody && <MarkdownRenderer content={cleanBody} />}
+        {finalBody && (isMdx
+          ? <MdxRenderer content={finalBody} />
+          : <MarkdownRenderer content={finalBody} />
+        )}
 
         {/* Child document cards */}
         {childDocs && childDocs.length > 0 && (

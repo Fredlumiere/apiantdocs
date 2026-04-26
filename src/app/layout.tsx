@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { ChatPanel } from "@/components/chat-panel";
 import { AuthProvider } from "@/components/auth-provider";
 import "./globals.css";
+import "@/styles/gallery.css";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -34,7 +35,7 @@ export default function RootLayout({
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t)}catch(e){}})();`,
+            __html: `(function(){try{var t=localStorage.getItem('theme');if(t==='light'||t==='dark')document.documentElement.setAttribute('data-theme',t);var w=localStorage.getItem('sidebar-width');if(w&&!isNaN(+w)&&+w>=180&&+w<=600)document.documentElement.style.setProperty('--sidebar-width',w+'px')}catch(e){}})();`,
           }}
         />
       </head>

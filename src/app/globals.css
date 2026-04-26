@@ -171,6 +171,11 @@ a {
   --tw-prose-td-borders: var(--border-primary);
 }
 
+.prose blockquote p:first-of-type::before,
+.prose blockquote p:last-of-type::after {
+  content: none;
+}
+
 .prose :where(code):not(:where(pre *)) {
   background: var(--bg-tertiary);
   color: var(--text-primary);
@@ -195,6 +200,14 @@ a {
 .prose td, .prose th {
   padding: var(--space-2) var(--space-3);
   border-bottom: 1px solid var(--border-primary);
+}
+
+/* Tailwind Typography sets a light bg on all `code` by default. Strip it inside `pre` so
+   block code sits flat on the pre's dark background instead of near-white-on-near-white. */
+.prose pre code {
+  background: transparent;
+  padding: 0;
+  color: var(--text-primary);
 }
 
 .hljs-keyword { color: var(--accent-cyan); }
@@ -449,31 +462,42 @@ a {
 /* ========================================================================
    Callouts (Archbee hint blocks)
    ======================================================================== */
-.prose .callout {
+.callout {
   margin: var(--space-4) 0;
   padding: var(--space-3) var(--space-4);
   border-left: 4px solid;
   border-radius: var(--radius-md);
   background: var(--bg-secondary);
 }
-.prose .callout > :first-child { margin-top: 0; }
-.prose .callout > :last-child  { margin-bottom: 0; }
+.callout > :first-child { margin-top: 0; }
+.callout > :last-child  { margin-bottom: 0; }
 
-.prose .callout-info,
-.prose .callout-note {
+.callout-info,
+.callout-note {
   border-color: #3b82f6;
   background: rgba(59, 130, 246, 0.08);
 }
-.prose .callout-success,
-.prose .callout-tip {
+.callout-success,
+.callout-tip {
   border-color: #22c55e;
   background: rgba(34, 197, 94, 0.08);
 }
-.prose .callout-warning {
+.callout-warning {
   border-color: #f59e0b;
   background: rgba(245, 158, 11, 0.08);
 }
-.prose .callout-danger {
+.callout-danger {
   border-color: #ef4444;
   background: rgba(239, 68, 68, 0.08);
+}
+
+/* Review highlight — content I want Robert's eyes on before publish.
+   Greppable as <mark class="review"> in the doc body. */
+mark.review {
+  background: rgba(245, 200, 50, 0.35);
+  color: inherit;
+  padding: 0 3px;
+  border-radius: 2px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
 }

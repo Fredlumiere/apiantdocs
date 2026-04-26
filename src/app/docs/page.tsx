@@ -1,7 +1,34 @@
 import Link from "next/link";
 import { createServerClient } from "@/lib/supabase";
 import { TagList } from "@/components/tag-list";
-import { DOC_TYPE_LABELS, PRODUCT_LABELS, PRODUCTS, APP_FAMILIES } from "@/lib/constants";
+import { DOC_TYPE_LABELS, PRODUCT_LABELS, APP_FAMILIES } from "@/lib/constants";
+
+const QUICK_START_CARDS: { slug: string; title: string; description: string }[] = [
+  {
+    slug: "get-started/install",
+    title: "Install the Plugin",
+    description:
+      "Install the Claude Code plugin, verify your environment, and authenticate to your APIANT sandbox.",
+  },
+  {
+    slug: "get-started/hello-world",
+    title: "Your First Integration",
+    description:
+      "Ship a working webhook automation in 5–10 minutes. No API keys, no OAuth — just plugin mechanics.",
+  },
+  {
+    slug: "understanding-apiant",
+    title: "How APIANT Works",
+    description:
+      "The conceptual model behind automations, assemblies, connectors, and integration suites.",
+  },
+  {
+    slug: "building-with-the-plugin",
+    title: "Building with the Plugin",
+    description:
+      "Build, edit, test, and deploy automations and assemblies — the everyday surface for working with APIANT through Claude Code.",
+  },
+];
 
 export const revalidate = 60;
 
@@ -38,25 +65,6 @@ export default async function DocsIndex({
       .sort((a, b) => b[1] - a[1])
       .slice(0, 20)
       .map(([t]) => t);
-  }
-
-  // For unfiltered view, pick 4 getting-started entry-point docs
-  let entryDocs: { slug: string; title: string; description: string | null }[] = [];
-  if (!isFiltered && docs) {
-    const entrySlugs = [
-      "what-is-apiant",
-      "automation-editor/key-concepts",
-      "automation-editor/building-automations/your-first-automation",
-      "assembly-editor/building-assemblies/your-first-assembly",
-    ];
-    for (const s of entrySlugs) {
-      const found = docs.find((d) => d.slug === s);
-      if (found) entryDocs.push({ slug: found.slug, title: found.title, description: found.description });
-    }
-    // If we didn't find enough, grab first few docs
-    if (entryDocs.length < 3) {
-      entryDocs = docs.slice(0, 4).map((d) => ({ slug: d.slug, title: d.title, description: d.description }));
-    }
   }
 
   const heading = tag
@@ -273,11 +281,7 @@ export default async function DocsIndex({
         {docs && docs.length > 0 ? (
           <div style={{ display: "flex", flexDirection: "column", gap: "var(--space-3)" }}>
             {docs.map((doc) => (
-              <Link
-                key={doc.slug}
-                href={`/docs/${doc.slug}`}
-                className="doc-list-card"
-              >
+              <div key={doc.slug} className="doc-list-card">
                 <div style={{ display: "flex", alignItems: "center", gap: "var(--space-2)", flexWrap: "wrap" }}>
                   <span style={{
                     fontSize: "11px",
@@ -302,7 +306,11 @@ export default async function DocsIndex({
                     </span>
                   )}
                 </div>
-                <h3 style={{ fontWeight: 500, marginTop: "var(--space-2)", fontSize: "15px" }}>{doc.title}</h3>
+                <h3 style={{ fontWeight: 500, marginTop: "var(--space-2)", fontSize: "15px" }}>
+                  <Link href={`/docs/${doc.slug}`} className="doc-list-card-title">
+                    {doc.title}
+                  </Link>
+                </h3>
                 {doc.description && (
                   <p style={{ fontSize: "14px", color: "var(--text-secondary)", marginTop: "4px" }}>
                     {doc.description}
@@ -313,7 +321,7 @@ export default async function DocsIndex({
                     <TagList tags={doc.tags} compact />
                   </div>
                 )}
-              </Link>
+              </div>
             ))}
           </div>
         ) : (
@@ -326,13 +334,19 @@ export default async function DocsIndex({
             padding: var(--space-4);
             border-radius: var(--radius-md);
             border: 1px solid var(--border-primary);
-            text-decoration: none;
-            color: inherit;
             transition: border-color 0.15s, background 0.15s;
           }
           .doc-list-card:hover {
             border-color: var(--border-hover);
             background: var(--bg-surface);
+          }
+          .doc-list-card-title {
+            color: var(--text-primary);
+            text-decoration: none;
+            transition: color 0.15s;
+          }
+          .doc-list-card:hover .doc-list-card-title {
+            color: var(--accent-primary);
           }
         `}</style>
       </main>
@@ -346,24 +360,47 @@ export default async function DocsIndex({
       maxWidth: "960px",
       padding: "var(--space-8) var(--space-4)",
     }}>
-      <h1 style={{
-        fontSize: "32px",
-        fontWeight: 700,
-        letterSpacing: "-0.02em",
-        marginBottom: "var(--space-2)",
-        color: "var(--text-primary)",
-      }}>
-        Documentation
-      </h1>
-      <p style={{
-        color: "var(--text-secondary)",
-        fontSize: "15px",
-        marginBottom: "var(--space-8)",
-      }}>
-        {docs?.length || 0} documents
-      </p>
+      {/* Hero */}
+      <section style={{ marginBottom: "var(--space-12)" }}>
+        <h1 style={{
+          fontSize: "38px",
+          fontWeight: 700,
+          letterSpacing: "-0.02em",
+          lineHeight: 1.15,
+          marginBottom: "var(--space-4)",
+          color: "var(--text-primary)",
+          maxWidth: "24ch",
+        }}>
+          One prompt. Any integration. Claude Code drives the platform.
+        </h1>
+        <p style={{
+          color: "var(--text-secondary)",
+          fontSize: "16px",
+          lineHeight: 1.5,
+          marginBottom: "var(--space-6)",
+          maxWidth: "60ch",
+        }}>
+          APIANT is an iPaaS operable end-to-end by the Claude Code plugin. Build automations, register OAuth apps, and deploy to production from natural-language prompts.
+        </p>
+        <Link
+          href="/docs/get-started/install"
+          style={{
+            display: "inline-block",
+            padding: "10px 18px",
+            background: "var(--accent-primary)",
+            color: "#0b0d0a",
+            fontWeight: 600,
+            fontSize: "14px",
+            borderRadius: "var(--radius-sm)",
+            textDecoration: "none",
+            transition: "opacity 0.15s",
+          }}
+        >
+          Install the Claude Code Plugin →
+        </Link>
+      </section>
 
-      {/* Getting Started section */}
+      {/* Quick Start */}
       <section style={{ marginBottom: "var(--space-12)" }}>
         <h2 style={{
           fontSize: "13px",
@@ -374,78 +411,28 @@ export default async function DocsIndex({
           marginBottom: "var(--space-4)",
           fontFamily: "var(--font-geist-mono), monospace",
         }}>
-          Getting Started
+          Quick Start
         </h2>
         <div style={{
           display: "grid",
           gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
           gap: "var(--space-4)",
         }}>
-          {entryDocs.map((doc) => (
+          {QUICK_START_CARDS.map((card) => (
             <Link
-              key={doc.slug}
-              href={`/docs/${doc.slug}`}
+              key={card.slug}
+              href={`/docs/${card.slug}`}
               className="doc-list-card"
               style={{ padding: "var(--space-4)" }}
             >
               <h3 style={{ fontWeight: 600, fontSize: "15px", color: "var(--text-primary)", marginBottom: "var(--space-2)" }}>
-                {doc.title}
+                {card.title}
               </h3>
-              {doc.description && (
-                <p style={{ fontSize: "13px", color: "var(--text-secondary)", lineHeight: 1.5 }}>
-                  {doc.description.length > 120 ? doc.description.substring(0, 117) + "..." : doc.description}
-                </p>
-              )}
+              <p style={{ fontSize: "13px", color: "var(--text-secondary)", lineHeight: 1.5 }}>
+                {card.description}
+              </p>
             </Link>
           ))}
-        </div>
-      </section>
-
-      {/* Browse by Product */}
-      <section style={{ marginBottom: "var(--space-12)" }}>
-        <h2 style={{
-          fontSize: "13px",
-          fontWeight: 600,
-          letterSpacing: "0.08em",
-          textTransform: "uppercase" as const,
-          color: "var(--text-tertiary)",
-          marginBottom: "var(--space-4)",
-          fontFamily: "var(--font-geist-mono), monospace",
-        }}>
-          Browse by Product
-        </h2>
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))",
-          gap: "var(--space-4)",
-        }}>
-          {PRODUCTS.map((p) => {
-            const count = docs?.filter((d) => d.product === p.key).length || 0;
-            return (
-              <Link
-                key={p.key}
-                href={`/docs?product=${p.key}`}
-                className="doc-list-card"
-                style={{ padding: "var(--space-4)" }}
-              >
-                <h3 style={{ fontWeight: 600, fontSize: "15px", color: "var(--text-primary)", marginBottom: "4px" }}>
-                  {p.label}
-                </h3>
-                <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "4px" }}>
-                  {p.description}
-                </p>
-                {count > 0 && (
-                  <span style={{
-                    fontSize: "11px",
-                    fontFamily: "var(--font-geist-mono), monospace",
-                    color: "var(--text-tertiary)",
-                  }}>
-                    {count} docs
-                  </span>
-                )}
-              </Link>
-            );
-          })}
         </div>
       </section>
 

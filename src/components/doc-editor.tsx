@@ -567,6 +567,8 @@ const publishBtnStyle: React.CSSProperties = {
 const metaFieldsStyle: React.CSSProperties = {
   padding: "var(--space-6)",
   borderBottom: "1px solid var(--border-primary)",
+  overflow: "hidden",
+  minWidth: 0,
 };
 
 const fieldInputStyle: React.CSSProperties = {

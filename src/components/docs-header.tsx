@@ -57,38 +57,10 @@ export function DocsHeader({ onOpenSearch }: DocsHeaderProps) {
             alt="APIANT"
             style={{ height: "23px", width: "auto" }}
           />
-          <span
-            style={{
-              fontSize: "11px",
-              fontWeight: 600,
-              letterSpacing: "0.08em",
-              textTransform: "uppercase" as const,
-              color: "var(--accent-primary)",
-              background: "var(--accent-primary-subtle)",
-              padding: "2px 6px",
-              borderRadius: "4px",
-              marginLeft: "6px",
-            }}
-          >
-            docs
-          </span>
         </Link>
 
         {/* Desktop nav links */}
         <nav className="desktop-nav-links" style={{ display: "flex", alignItems: "center", gap: "var(--space-4)" }}>
-          <Link
-            href="/docs"
-            style={{
-              fontSize: "14px",
-              color: "var(--text-secondary)",
-              textDecoration: "none",
-              transition: "color 0.1s",
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = "var(--text-primary)")}
-            onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-secondary)")}
-          >
-            Docs
-          </Link>
           {user && <Link
             href="/api-reference"
             style={{

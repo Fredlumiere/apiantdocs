@@ -118,7 +118,12 @@ async function main() {
 
   console.log(`\n=== Complete ===`);
   console.log(`Success: ${success}, Failed: ${failed}`);
-  console.log(`\nRun REINDEX: supabase db execute --sql "REINDEX INDEX idx_doc_embeddings_vector;"`);
+
+  if (success > 0) {
+    process.stdout.write(`\nREINDEX idx_doc_embeddings_vector...`);
+    const { error } = await supabase.rpc("reindex_doc_embeddings");
+    console.log(error ? ` FAILED: ${error.message}` : " done");
+  }
 }
 
 main().catch(console.error);

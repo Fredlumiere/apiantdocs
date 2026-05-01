@@ -10,6 +10,20 @@ AI-first documentation platform replacing info.apiant.com (Archbee). Next.js 16 
 - `npx tsx scripts/migrate-from-export.ts` — Run Archbee migration
 - `npx tsx scripts/fix-images.ts` — Fix failed image migrations
 - `cd packages/mcp-server && npm run build` — Build MCP server
+- `scripts/sync-claude-agents.sh` — Refresh `.claude/commands/` from `Fredlumiere/apiant-claude-agents`
+
+## Collaborator Setup
+
+This repo ships a curated Claude Code agent suite at `.claude/commands/` (16 engineering agents: max, sam, hal, dan, dex, meg, gus, rex, pete, zoe, cal, rho, oz, joy, liv, ash). They're committed so a fresh clone gets consistent behavior across collaborators — no extra install required.
+
+To pull the latest agent set from the source-of-truth repo:
+
+```bash
+scripts/sync-claude-agents.sh
+git status .claude/commands  # review, then commit if changes
+```
+
+Source: `Fredlumiere/apiant-claude-agents` (private). Per-user overrides go in `.claude/settings.local.json` (gitignored).
 
 ## Architecture
 

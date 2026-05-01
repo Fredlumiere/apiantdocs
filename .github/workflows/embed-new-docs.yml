@@ -1,0 +1,39 @@
+name: Embed new docs
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Every 30 minutes — pick up new docs landed via API/MCP/sync-to-prod
+    - cron: "*/30 * * * *"
+
+# Allow only one embed run at a time so concurrent runs don't double-insert
+concurrency:
+  group: embed-new-docs
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  embed:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Embed new docs
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          VOYAGE_API_KEY: ${{ secrets.VOYAGE_API_KEY }}
+        run: npm run embed-new-docs

@@ -84,13 +84,18 @@ async function fetchAll(client: SupabaseClient): Promise<Doc[]> {
   let from = 0;
   const pageSize = 500;
   while (true) {
-    let q = client
+    // Always load the full doc set, even under --slug=X. Iteration is filtered
+    // later. This is load-bearing for parent_id remap: localSlugById and
+    // targetBySlug must contain the parent rows to look up the parent's slug
+    // and resolve the target's parent UUID. Filtering here under --slug used
+    // to silently null prod parent_ids (bug log: reference-apiantdocs.md +
+    // medium-term todo #6, 2026-05-15).
+    const q = client
       .from("documents")
       .select("id, slug, title, description, body, doc_type, product, parent_id, sort_order, status, tags, metadata, updated_at, version")
       .eq("status", "published")
       .order("slug", { ascending: true })
       .range(from, from + pageSize - 1);
-    if (forcedSlug) q = q.eq("slug", forcedSlug);
     const { data, error } = await q;
     if (error) throw error;
     if (!data || data.length === 0) break;
@@ -117,7 +122,11 @@ async function applyInserts(
   const localSlugById = new Map<string, string>(localDocs.map((d) => [d.id, d.slug]));
 
   // Initial pending set: locals not yet on target.
-  const pending = localDocs.filter((d) => !targetIdBySlug.has(d.slug));
+  // Under --slug, only insert the target slug, but localSlugById above still
+  // sees the full set so parent_id remap can resolve.
+  const pending = localDocs.filter((d) =>
+    !targetIdBySlug.has(d.slug) && (!forcedSlug || d.slug === forcedSlug),
+  );
   console.log(`[insert] ${pending.length} docs missing on ${target}, attempting topological insert`);
 
   let inserted = 0;
@@ -193,7 +202,7 @@ async function applyInserts(
         document_id: ins.id,
         version: 0,
         title: ld.title,
-        body: null,
+        body: ld.body ?? "",
         changed_by: `sync-to-${target}`,
         change_summary: `initial insert from local`,
       });
@@ -229,14 +238,19 @@ async function main() {
   console.log(`[info] local=${localDocs.length} docs  ${target}=${targetDocs.length} docs`);
 
   const targetBySlug = new Map(targetDocs.map((d) => [d.slug, d]));
+  const localSlugById = new Map<string, string>(localDocs.map((d) => [d.id, d.slug]));
 
   let descChanges = 0;
   let bodyChanges = 0;
+  let metaChanges = 0;
   let missingOnTarget = 0;
   let applied = 0;
   let failed = 0;
 
   for (const ld of localDocs) {
+    // Under --slug, only diff/patch the target slug. The maps above still
+    // see the full set so parent_id remap can resolve to the target's UUID.
+    if (forcedSlug && ld.slug !== forcedSlug) continue;
     const td = targetBySlug.get(ld.slug);
     if (!td) {
       missingOnTarget++;
@@ -244,9 +258,40 @@ async function main() {
       continue;
     }
 
-    const patch: { description?: string | null; body?: string | null } = {};
+    type Patch = {
+      description?: string | null;
+      body?: string | null;
+      title?: string;
+      product?: string | null;
+      sort_order?: number | null;
+      doc_type?: string | null;
+      tags?: string[] | null;
+      parent_id?: string | null;
+    };
+    const patch: Patch = {};
     const descDiff = (field === "description" || field === "both") && (ld.description || "") !== (td.description || "");
     const bodyDiff = (field === "body" || field === "both") && (ld.body || "") !== (td.body || "");
+
+    // Metadata fields control the sidebar (product, sort_order, parent_id, title)
+    // and search/filter (tags, doc_type). Sync them whenever field=="both".
+    let metaDiff = false;
+    if (field === "both") {
+      if (ld.title !== td.title) { patch.title = ld.title; metaDiff = true; }
+      if ((ld.product || null) !== (td.product || null)) { patch.product = ld.product; metaDiff = true; }
+      if ((ld.sort_order ?? 0) !== (td.sort_order ?? 0)) { patch.sort_order = ld.sort_order ?? 0; metaDiff = true; }
+      if ((ld.doc_type || null) !== (td.doc_type || null)) { patch.doc_type = ld.doc_type; metaDiff = true; }
+      const ldTags = JSON.stringify(ld.tags || []);
+      const tdTags = JSON.stringify(td.tags || []);
+      if (ldTags !== tdTags) { patch.tags = ld.tags; metaDiff = true; }
+
+      // parent_id: remap local UUID to target UUID via slug.
+      const localParentSlug = ld.parent_id ? localSlugById.get(ld.parent_id) ?? null : null;
+      const targetParentId = localParentSlug ? (targetBySlug.get(localParentSlug)?.id ?? null) : null;
+      if ((targetParentId || null) !== (td.parent_id || null)) {
+        patch.parent_id = targetParentId;
+        metaDiff = true;
+      }
+    }
 
     if (descDiff) {
       descChanges++;
@@ -256,6 +301,8 @@ async function main() {
       bodyChanges++;
       patch.body = ld.body;
     }
+    if (metaDiff) metaChanges++;
+
     if (Object.keys(patch).length === 0) continue;
 
     const changedFields = Object.keys(patch).join(",");
@@ -266,6 +313,10 @@ async function main() {
       const oldLen = (td.body || "").length;
       const newLen = (ld.body || "").length;
       console.log(`\n[${ld.slug}] body changed (${oldLen} → ${newLen} chars)`);
+    }
+    if (metaDiff) {
+      const metaFields = Object.keys(patch).filter((k) => k !== "description" && k !== "body").join(",");
+      console.log(`[${ld.slug}] metadata changed: ${metaFields}`);
     }
 
     if (!commit) continue;
@@ -305,6 +356,7 @@ async function main() {
   console.log(`\n[summary] target=${target}`);
   console.log(`  description diffs: ${descChanges}`);
   console.log(`  body diffs:        ${bodyChanges}`);
+  console.log(`  metadata diffs:    ${metaChanges}`);
   console.log(`  missing on target: ${missingOnTarget}`);
   console.log(`  updates applied:   ${applied}`);
   console.log(`  updates failed:    ${failed}`);

@@ -107,14 +107,13 @@ Dark mode via `prefers-color-scheme`. Must match apiant.com/index2.html — dark
 
 ## Known Issues
 
-1. Search is title-only — full-text GIN index covers title+description+body but API only queries title
-2. Chat RAG uses ilike (not semantic search) — slow and imprecise
-3. No client-side interactivity — no search UI, no chat UI, no JS navigation
-4. Sidebar is flat by product — doesn't render parent/child hierarchy
-5. No breadcrumbs, no TOC, no on-this-page navigation
-6. No admin/editor UI — API or MCP only
-7. Pagination `count` is page length, not total
-8. Without VOYAGE_API_KEY, embeddings silently fall back to random vectors
+1. `/api/chat` retrieval is keyword-only (full-text via `search_documents` RPC); `/api/search` supports hybrid keyword+semantic (Voyage embeddings + `match_doc_embeddings`), but chat doesn't yet use the semantic path
+2. No client-side interactivity — no search UI, no chat UI, no JS navigation
+3. Sidebar is flat by product — doesn't render parent/child hierarchy
+4. No breadcrumbs, no TOC, no on-this-page navigation
+5. No admin/editor UI — API or MCP only
+6. Pagination `count` is page length, not total
+7. Without VOYAGE_API_KEY, embeddings silently fall back to random vectors
 
 ## Critical Gotchas
 

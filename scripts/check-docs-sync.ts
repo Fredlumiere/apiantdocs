@@ -2,10 +2,11 @@
  * check-docs-sync.ts — Verify plugin skills + MCP tools stay in sync with docs.
  *
  * Usage:
- *   npx tsx scripts/check-docs-sync.ts            # report drift, exit 1 if any
- *   npx tsx scripts/check-docs-sync.ts --fix      # regenerate desc= on SkillCards from SKILL.md
- *   npx tsx scripts/check-docs-sync.ts --tools    # only MCP tool catalog check
- *   npx tsx scripts/check-docs-sync.ts --skills   # only skills index check
+ *   npx tsx scripts/check-docs-sync.ts                  # report drift, exit 1 if any
+ *   npx tsx scripts/check-docs-sync.ts --fix            # add missing SkillCards (no desc rewrites)
+ *   npx tsx scripts/check-docs-sync.ts --fix-descs      # rewrite desc= on SkillCards (from SKILL.md) and ToolCards (from servlet description put-calls)
+ *   npx tsx scripts/check-docs-sync.ts --tools          # only MCP tool catalog check
+ *   npx tsx scripts/check-docs-sync.ts --skills         # only skills index check
  *
  * Data sources:
  *   - Plugin:  /Users/rcyeager/appdev_root/apiant-claude-plugin/skills/*\/SKILL.md
@@ -96,6 +97,7 @@ type DocSkillCard = {
 type ServletTool = {
   name: string;
   toolset: string;
+  description: string;
 };
 
 // ---------------------------------------------------------------------------
@@ -444,13 +446,22 @@ function readServletTools(path: string): ServletTool[]
   const txt = readFileSync(path, "utf8");
   const nameRe = /objTool\.put\("name",\s*"([a-zA-Z0-9_]+)"\s*\)/g;
   const toolsetRe = /objTool\.put\("toolset",\s*"([a-zA-Z0-9_]+)"\s*\)/g;
+  // Description put-calls span multiple lines and concatenate string literals
+  // with `+`. Capture everything between the comma and the closing `)` then
+  // extract every quoted literal and join them.
+  const descRe = /objTool\.put\("description",\s*([\s\S]*?)\)\s*;/g;
 
   const names: Array<{ pos: number; name: string }> = [];
   const toolsets: Array<{ pos: number; toolset: string }> = [];
+  const descs: Array<{ pos: number; description: string }> = [];
 
   let m: RegExpExecArray | null;
   while ((m = nameRe.exec(txt)) !== null) names.push({ pos: m.index, name: m[1] });
   while ((m = toolsetRe.exec(txt)) !== null) toolsets.push({ pos: m.index, toolset: m[1] });
+  while ((m = descRe.exec(txt)) !== null)
+  {
+    descs.push({ pos: m.index, description: parseStringConcatLiteral(m[1]) });
+  }
 
   const out: ServletTool[] = [];
   for (let i = 0; i < names.length; i++)
@@ -459,13 +470,46 @@ function readServletTools(path: string): ServletTool[]
     const next = names[i + 1]?.pos ?? txt.length;
     const prev = names[i - 1]?.pos ?? 0;
     // toolset put falls between this name and the next; some declarations place
-    // toolset before name, so also search back to previous.
+    // toolset before name, so also search back to previous. Same locality rule
+    // applies to description puts.
     const ts =
       toolsets.find((t) => t.pos > cur.pos && t.pos < next) ??
       toolsets.find((t) => t.pos > prev && t.pos < cur.pos);
-    out.push({ name: cur.name, toolset: ts?.toolset ?? "(unknown)" });
+    const desc =
+      descs.find((d) => d.pos > cur.pos && d.pos < next) ??
+      descs.find((d) => d.pos > prev && d.pos < cur.pos);
+    out.push({
+      name: cur.name,
+      toolset: ts?.toolset ?? "(unknown)",
+      description: desc?.description ?? "",
+    });
   }
   return out;
+}
+
+// Extract all double-quoted string literals from a Java string-concat
+// expression (e.g. `"foo" + " bar" + " baz"`) and concatenate them, decoding
+// the most common Java escapes. Used for `objTool.put("description", ...)`
+// blocks where the description spans multiple `+`-joined literals.
+function parseStringConcatLiteral(blob: string): string
+{
+  const re = /"((?:[^"\\]|\\.)*)"/g;
+  const parts: string[] = [];
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(blob)) !== null)
+  {
+    parts.push(unescapeJavaString(m[1]));
+  }
+  return parts.join("");
+}
+
+function unescapeJavaString(s: string): string
+{
+  return s
+    .replace(/\\"/g, '"')
+    .replace(/\\\\/g, "\\")
+    .replace(/\\n/g, "\n")
+    .replace(/\\t/g, "\t");
 }
 
 function readAllServletTools(): ServletTool[]
@@ -495,7 +539,14 @@ function readValidToolsets(): string[]
 // <WorkflowSection> wrappers whose count is derived from children. With the
 // count guaranteed-in-sync by construction, there is nothing to detect at the
 // toolset level. Per-tool name drift still catches typos and is preserved.
-type DocTool = { name: string };
+type DocTool = {
+  name: string;
+  desc: string;
+  descIsTemplate: boolean;
+  raw: string;
+  startIdx: number;
+  endIdx: number;
+};
 
 function parseToolsDoc(body: string): { tools: DocTool[] }
 {
@@ -513,14 +564,28 @@ function parseToolsDoc(body: string): { tools: DocTool[] }
     const unit = extractAttr(sectionAttrs, "unit") ?? "skill";
     if (unit !== "tool") continue;
 
+    // Compute the absolute offset of sectionBody inside the full body so that
+    // per-card startIdx/endIdx are global (needed for back-to-front rewrites).
+    const sectionBodyStart = sm.index + sm[0].indexOf(sectionBody);
+
+    const innerCardRe = new RegExp(cardRe.source, "g");
     let cm: RegExpExecArray | null;
-    while ((cm = cardRe.exec(sectionBody)) !== null)
+    while ((cm = innerCardRe.exec(sectionBody)) !== null)
     {
-      const name = extractAttr(cm[1], "name") ?? "";
+      const attrsBlob = cm[1];
+      const name = extractAttr(attrsBlob, "name") ?? "";
       // tool names use snake_case and no leading slash; skill names have a leading slash
       if (name && !name.startsWith("/"))
       {
-        tools.push({ name });
+        const descRaw = extractDescAttr(attrsBlob);
+        tools.push({
+          name,
+          desc: descRaw.value,
+          descIsTemplate: descRaw.isTemplate,
+          raw: cm[0],
+          startIdx: sectionBodyStart + cm.index,
+          endIdx: sectionBodyStart + cm.index + cm[0].length,
+        });
       }
     }
   }
@@ -531,6 +596,13 @@ function parseToolsDoc(body: string): { tools: DocTool[] }
 type ToolDrift = {
   toolsInServletNotInDoc: string[];
   toolsInDocNotInServlet: string[];
+  descDrift: Array<{
+    name: string;
+    servletDesc: string;
+    docDesc: string;
+    servletTool: ServletTool;
+    docCard: DocTool;
+  }>;
 };
 
 function diffTools(servletTools: ServletTool[], docParsed: ReturnType<typeof parseToolsDoc>): ToolDrift
@@ -538,6 +610,7 @@ function diffTools(servletTools: ServletTool[], docParsed: ReturnType<typeof par
   // Per-tool drift: only applies to the subset of tools enumerated in the doc
   // (Core + Knowledge Base). Other toolsets are deliberately not enumerated
   // individually in the doc; they render as cards inside WorkflowSection.
+  const servletByName = new Map(servletTools.map((t) => [t.name, t]));
   const servletNames = new Set(servletTools.map((t) => t.name));
 
   // `activate_toolset` lives in server.js, not in either servlet. Add it to the
@@ -557,9 +630,33 @@ function diffTools(servletTools: ServletTool[], docParsed: ReturnType<typeof par
   // intentionally only lists Core + Knowledge Base individually.
   const toolsInServletNotInDoc: string[] = [];
 
+  // Description drift: for each doc card whose name matches a servlet tool,
+  // compare the doc desc to the servlet description. Skip docs_* (they live in
+  // the apiant-docs MCP server, not the platform servlets) and skip when the
+  // servlet description is empty (couldn't extract — don't blow away editorial).
+  const descDrift: ToolDrift["descDrift"] = [];
+  for (const docCard of docParsed.tools)
+  {
+    if (docCard.name.startsWith("docs_")) continue;
+    const servletTool = servletByName.get(docCard.name);
+    if (!servletTool) continue;
+    if (servletTool.description.length === 0) continue;
+    if (normDesc(docCard.desc) !== normDesc(servletTool.description))
+    {
+      descDrift.push({
+        name: docCard.name,
+        servletDesc: servletTool.description,
+        docDesc: docCard.desc,
+        servletTool,
+        docCard,
+      });
+    }
+  }
+
   return {
     toolsInServletNotInDoc,
     toolsInDocNotInServlet,
+    descDrift,
   };
 }
 
@@ -625,15 +722,30 @@ function reportSkillsDrift(plugin: PluginSkill[], drift: SkillDrift, showDescDri
   return blockingCount > 0;
 }
 
-function reportToolDrift(drift: ToolDrift, servletTotal: number): boolean
+function reportToolDrift(drift: ToolDrift, servletTotal: number, showDescDrift: boolean): boolean
 {
   const issueCount =
     drift.toolsInDocNotInServlet.length +
     drift.toolsInServletNotInDoc.length;
+  const infoCount = drift.descDrift.length;
+
+  if (issueCount === 0 && infoCount === 0)
+  {
+    console.log(c.green(`[OK] MCP tool catalog in sync (${servletTotal} tools)`));
+    if (drift.descDrift.length > 0 && showDescDrift)
+    {
+      printToolDescDrift(drift);
+    }
+    return false;
+  }
 
   if (issueCount === 0)
   {
-    console.log(c.green(`[OK] MCP tool catalog in sync (${servletTotal} tools)`));
+    console.log(
+      c.green(`[OK] MCP tool catalog in sync (${servletTotal} tools)`) +
+      c.dim(` (${infoCount} desc variations — editorial, not blocking)`),
+    );
+    if (showDescDrift) printToolDescDrift(drift);
     return false;
   }
 
@@ -645,7 +757,36 @@ function reportToolDrift(drift: ToolDrift, servletTotal: number): boolean
     for (const t of drift.toolsInDocNotInServlet) console.log(`  ${c.cyan(t)}`);
   }
 
+  if (showDescDrift) printToolDescDrift(drift);
+
   return true;
+}
+
+function printToolDescDrift(drift: ToolDrift): void
+{
+  if (drift.descDrift.length === 0) return;
+  console.log(c.yellow(`\nTool description variation (${drift.descDrift.length}, informational — doc descs are editorial):`));
+  for (const d of drift.descDrift)
+  {
+    console.log(`  ${c.cyan(d.name)}`);
+    console.log(`    ${c.dim("servlet:")} ${truncate(d.servletDesc, 120)}`);
+    console.log(`    ${c.dim("doc:    ")} ${truncate(d.docDesc, 120)}`);
+  }
+}
+
+async function fixTools(body: string, drift: ToolDrift): Promise<string>
+{
+  // Walk back-to-front so earlier startIdx values stay valid as we splice.
+  const sorted = [...drift.descDrift].sort(
+    (a, b) => b.docCard.startIdx - a.docCard.startIdx,
+  );
+  let newBody = body;
+  for (const d of sorted)
+  {
+    const newCard = replaceDescInCard(d.docCard.raw, d.servletTool.description);
+    newBody = newBody.slice(0, d.docCard.startIdx) + newCard + newBody.slice(d.docCard.endIdx);
+  }
+  return newBody;
 }
 
 function truncate(s: string, n: number): string
@@ -725,8 +866,20 @@ async function main()
     const { body } = await loadDocBody(TOOLS_SLUG);
     const parsed = parseToolsDoc(body);
     const drift = diffTools(servletTools, parsed);
-    const hasDrift = reportToolDrift(drift, servletTools.length + 1 /* activate_toolset */);
-    if (hasDrift) anyDrift = true;
+    const hasBlockingDrift = reportToolDrift(drift, servletTools.length + 1 /* activate_toolset */, verbose || fixDescs);
+
+    const shouldFix = fixDescs && drift.descDrift.length > 0;
+    if (shouldFix)
+    {
+      const newBody = await fixTools(body, drift);
+      if (newBody !== body)
+      {
+        await saveDocBody(TOOLS_SLUG, newBody);
+        console.log(c.green(`\n[FIX] Updated ${TOOLS_SLUG} — ${drift.descDrift.length} tool desc rewrites.`));
+      }
+    }
+
+    if (hasBlockingDrift) anyDrift = true;
   }
 
   process.exit(anyDrift ? 1 : 0);

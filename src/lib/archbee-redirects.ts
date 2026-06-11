@@ -2,6 +2,8 @@
 // Auto-generated redirect map from Archbee migration
 // Add this to your next.config.ts redirects() function
 export const archbeeRedirects = [
+    // Archived orphaned duplicate → canonical inline section in the parent page (2026-06-11)
+    { source: "/docs/crmconnect-mindbody-to-hubspot/hubspot-to-mindbody-reverse-sync", destination: "/docs/crmconnect-mindbody-to-hubspot#hubspot--mindbody-reverse-sync", permanent: true },
     { source: "/docs/apiant-for-builders/tenants-and-linked-accounts", destination: "/docs/automation-editor/account-management/tenants-and-linked-accounts", permanent: true },
     { source: "/integrators", destination: "/docs/apiant-for-builders", permanent: true },
     { source: "/rSvm-apiant-for-integrators", destination: "/docs/apiant-for-builders", permanent: true },

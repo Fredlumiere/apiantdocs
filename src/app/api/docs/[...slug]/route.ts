@@ -202,6 +202,17 @@ export async function PATCH(
     });
   }
 
+  // Re-index for semantic search (Ask AI) when content changed or the doc just
+  // became published. Best-effort: never fail the update.
+  const nowPublished = (data.status ?? existing.status) === "published";
+  if (nowPublished && (body.doc_body !== undefined || body.status === "published")) {
+    try {
+      await embedDocument(existing.id);
+    } catch (err) {
+      console.error("[apiantdocs] embedDocument after update failed:", err);
+    }
+  }
+
   return NextResponse.json({ data });
 }
 

@@ -3,6 +3,23 @@ import { createServerClient } from "@/lib/supabase";
 import { requireWriteAccess, validateSession } from "@/lib/api-auth";
 import { embedDocument } from "@/lib/embeddings";
 import { corsHeaders } from "@/lib/cors";
+import { resolveParent, unknownFieldWarnings } from "@/lib/doc-hierarchy";
+
+const UPDATE_ALLOWED_FIELDS = [
+  "slug",
+  "title",
+  "description",
+  "doc_body",
+  "doc_type",
+  "product",
+  "parent_id",
+  "parent_slug",
+  "sort_order",
+  "metadata",
+  "status",
+  "tags",
+  "change_summary",
+] as const;
 
 export async function OPTIONS() {
   return corsHeaders(new NextResponse(null, { status: 204 }));
@@ -159,13 +176,37 @@ export async function PATCH(
     }
   }
 
+  const warnings = unknownFieldWarnings(body, UPDATE_ALLOWED_FIELDS);
+
   const updates: Record<string, unknown> = {};
   if (body.title !== undefined) updates.title = body.title;
   if (body.description !== undefined) updates.description = body.description;
   if (body.doc_body !== undefined) updates.body = body.doc_body;
   if (body.doc_type !== undefined) updates.doc_type = body.doc_type;
   if (body.product !== undefined) updates.product = body.product;
-  if (body.parent_id !== undefined) updates.parent_id = body.parent_id;
+
+  // Resolve/validate the parent when a reparent is requested. An explicit
+  // parent_id (including null) or a parent_slug triggers resolution; omitting
+  // both leaves the current parent unchanged (backward compatible).
+  if (body.parent_id !== undefined || body.parent_slug !== undefined) {
+    const currentProduct =
+      body.product !== undefined ? body.product : existing.product;
+    const resolution = await resolveParent(supabase, {
+      parentIdRaw: body.parent_id,
+      parentSlug: body.parent_slug,
+      selfId: existing.id,
+      currentProduct,
+    });
+    if (resolution.error) {
+      return NextResponse.json(
+        { error: resolution.error.code, message: resolution.error.message },
+        { status: resolution.error.status }
+      );
+    }
+    updates.parent_id = resolution.parentId;
+    if (resolution.product !== undefined) updates.product = resolution.product;
+  }
+
   if (body.sort_order !== undefined) updates.sort_order = body.sort_order;
   if (body.metadata !== undefined) updates.metadata = body.metadata;
   if (body.tags !== undefined) updates.tags = Array.isArray(body.tags) ? body.tags : [];
@@ -202,7 +243,7 @@ export async function PATCH(
     });
   }
 
-  return NextResponse.json({ data });
+  return NextResponse.json(warnings.length > 0 ? { data, warnings } : { data });
 }
 
 // DELETE /api/docs/[...slug] — delete a document (requires write access)

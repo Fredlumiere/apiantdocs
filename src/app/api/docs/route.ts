@@ -2,6 +2,22 @@ import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase";
 import { requireWriteAccess } from "@/lib/api-auth";
 import { corsHeaders } from "@/lib/cors";
+import { resolveParent, nextSortOrder, unknownFieldWarnings } from "@/lib/doc-hierarchy";
+
+const CREATE_ALLOWED_FIELDS = [
+  "slug",
+  "title",
+  "description",
+  "doc_body",
+  "doc_type",
+  "product",
+  "parent_id",
+  "parent_slug",
+  "sort_order",
+  "metadata",
+  "status",
+  "tags",
+] as const;
 
 export async function OPTIONS() {
   return corsHeaders(new NextResponse(null, { status: 204 }));
@@ -57,7 +73,7 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const { slug, title, description, doc_body, doc_type, product, parent_id, sort_order, metadata, status, tags } = body;
+  const { slug, title, description, doc_body, doc_type, product, parent_id, parent_slug, sort_order, metadata, status, tags } = body;
 
   if (!slug || !title || !doc_body || !doc_type) {
     return NextResponse.json(
@@ -67,6 +83,31 @@ export async function POST(request: NextRequest) {
   }
 
   const supabase = createServerClient();
+  const warnings = unknownFieldWarnings(body, CREATE_ALLOWED_FIELDS);
+
+  // Resolve/validate the parent when hierarchy is requested.
+  let resolvedParentId: string | null = parent_id ?? null;
+  let effectiveProduct: string | null = product ?? null;
+  if (parent_id !== undefined || parent_slug !== undefined) {
+    const resolution = await resolveParent(supabase, {
+      parentIdRaw: parent_id,
+      parentSlug: parent_slug,
+      selfId: null,
+      currentProduct: effectiveProduct,
+    });
+    if (resolution.error) {
+      return NextResponse.json(
+        { error: resolution.error.code, message: resolution.error.message },
+        { status: resolution.error.status }
+      );
+    }
+    resolvedParentId = resolution.parentId;
+    if (resolution.product !== undefined) effectiveProduct = resolution.product;
+  }
+
+  // Default sort_order to append after existing siblings.
+  const resolvedSortOrder =
+    sort_order !== undefined ? sort_order : await nextSortOrder(supabase, resolvedParentId);
 
   const { data, error } = await supabase
     .from("documents")
@@ -76,9 +117,9 @@ export async function POST(request: NextRequest) {
       description: description || null,
       body: doc_body,
       doc_type,
-      product: product || null,
-      parent_id: parent_id || null,
-      sort_order: sort_order || 0,
+      product: effectiveProduct,
+      parent_id: resolvedParentId,
+      sort_order: resolvedSortOrder,
       tags: Array.isArray(tags) ? tags : [],
       metadata: metadata || {},
       status: status || "draft",
@@ -101,5 +142,8 @@ export async function POST(request: NextRequest) {
     change_summary: "Initial creation",
   });
 
-  return NextResponse.json({ data }, { status: 201 });
+  return NextResponse.json(
+    warnings.length > 0 ? { data, warnings } : { data },
+    { status: 201 }
+  );
 }

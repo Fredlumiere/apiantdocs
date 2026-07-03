@@ -5,7 +5,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 
 const API_BASE = process.env.APIANTDOCS_API_URL || "https://info.apiant.com";
-const MCP_VERSION = "0.2.0";
+const MCP_VERSION = "0.3.0";
 
 // Parse --api-key from CLI args
 function getCliApiKey(): string {
@@ -49,7 +49,7 @@ async function apiFetch(path: string, options: RequestInit = {}) {
 
 const server = new McpServer({
   name: "apiant-docs",
-  version: "0.1.0",
+  version: MCP_VERSION,
 });
 
 // docs_version — check for MCP server updates
@@ -236,7 +236,7 @@ server.tool(
 // docs_create — create a new document
 server.tool(
   "docs_create",
-  "Create a new documentation page",
+  "Create a new documentation page. Nesting in the sidebar is controlled by parent_id/parent_slug — the slug path (e.g. 'parent/child') is cosmetic and does NOT nest the page.",
   {
     slug: z.string().describe("URL slug for the document"),
     title: z.string().describe("Document title"),
@@ -245,11 +245,14 @@ server.tool(
     description: z.string().optional().describe("Short description"),
     product: z.enum(["api-apps", "platform", "mcp"]).optional().describe("Product category"),
     status: z.enum(["draft", "published"]).optional().describe("Publication status (default: draft)"),
+    parent_id: z.string().optional().describe("Parent document id (UUID) to nest this page under in the sidebar"),
+    parent_slug: z.string().optional().describe("Parent document slug — resolved to an id server-side. Ignored if parent_id is given."),
+    sort_order: z.number().optional().describe("Position among siblings; defaults to appending after existing siblings"),
   },
-  async ({ slug, title, doc_body, doc_type, description, product, status }) => {
+  async ({ slug, title, doc_body, doc_type, description, product, status, parent_id, parent_slug, sort_order }) => {
     const data = await apiFetch("/api/docs", {
       method: "POST",
-      body: JSON.stringify({ slug, title, doc_body, doc_type, description, product, status }),
+      body: JSON.stringify({ slug, title, doc_body, doc_type, description, product, status, parent_id, parent_slug, sort_order }),
     });
     return { content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }] };
   }
@@ -258,7 +261,7 @@ server.tool(
 // docs_update — update an existing document
 server.tool(
   "docs_update",
-  "Update an existing documentation page",
+  "Update an existing documentation page. Sidebar nesting is controlled by parent_id/parent_slug — the slug path does NOT nest the page. Pass parent_id: null to move the page to the root. Omitting all parent fields leaves the current parent unchanged.",
   {
     slug: z.string().describe("Current slug of the document to update"),
     title: z.string().optional().describe("New title"),
@@ -266,14 +269,44 @@ server.tool(
     description: z.string().optional().describe("New description"),
     status: z.enum(["draft", "published", "archived"]).optional().describe("New status"),
     change_summary: z.string().optional().describe("Summary of what changed"),
+    parent_id: z.string().nullable().optional().describe("New parent document id (UUID). Pass null to move to the root."),
+    parent_slug: z.string().optional().describe("New parent document slug — resolved to an id server-side. Ignored if parent_id is given."),
+    sort_order: z.number().optional().describe("Position among siblings"),
   },
-  async ({ slug, title, doc_body, description, status, change_summary }) => {
+  async ({ slug, title, doc_body, description, status, change_summary, parent_id, parent_slug, sort_order }) => {
     const updates: Record<string, unknown> = {};
     if (title !== undefined) updates.title = title;
     if (doc_body !== undefined) updates.doc_body = doc_body;
     if (description !== undefined) updates.description = description;
     if (status !== undefined) updates.status = status;
     if (change_summary !== undefined) updates.change_summary = change_summary;
+    if (parent_id !== undefined) updates.parent_id = parent_id;
+    if (parent_slug !== undefined) updates.parent_slug = parent_slug;
+    if (sort_order !== undefined) updates.sort_order = sort_order;
+
+    const data = await apiFetch(`/api/docs/${encodeURIComponent(slug)}`, {
+      method: "PATCH",
+      body: JSON.stringify(updates),
+    });
+    return { content: [{ type: "text" as const, text: JSON.stringify(data, null, 2) }] };
+  }
+);
+
+// docs_move — reparent or reorder a page without sending a full update body
+server.tool(
+  "docs_move",
+  "Move a documentation page in the sidebar hierarchy: set its parent and/or its position among siblings. This controls nesting, NOT the slug path.",
+  {
+    slug: z.string().describe("Slug of the document to move"),
+    parent_id: z.string().nullable().optional().describe("New parent document id (UUID). Pass null to move to the root."),
+    parent_slug: z.string().optional().describe("New parent document slug — resolved to an id server-side. Ignored if parent_id is given."),
+    sort_order: z.number().optional().describe("Position among siblings"),
+  },
+  async ({ slug, parent_id, parent_slug, sort_order }) => {
+    const updates: Record<string, unknown> = {};
+    if (parent_id !== undefined) updates.parent_id = parent_id;
+    if (parent_slug !== undefined) updates.parent_slug = parent_slug;
+    if (sort_order !== undefined) updates.sort_order = sort_order;
 
     const data = await apiFetch(`/api/docs/${encodeURIComponent(slug)}`, {
       method: "PATCH",

@@ -7,6 +7,7 @@ import { TableOfContents } from "@/components/table-of-contents";
 import { extractHeadings } from "@/lib/extract-headings";
 import { DocNav } from "@/components/doc-nav";
 import { ChildCards } from "@/components/child-cards";
+import { ProductCta } from "@/components/product-cta";
 import { TagList } from "@/components/tag-list";
 import { EditButton } from "@/components/edit-button";
 import { DOC_TYPE_LABELS, PRODUCT_LABELS } from "@/lib/constants";
@@ -95,6 +96,18 @@ export default async function DocPage({ params }: Props) {
       nextDoc = { slug: flat[currentIndex + 1].slug, title: flat[currentIndex + 1].title };
     }
   }
+
+  // Product CTA — only rendered when the doc carries a product_url. Guarded to
+  // https on apiant.com so a bad metadata value can't turn a doc page into an
+  // open redirect surface for arbitrary hosts.
+  const docMetadata = (doc.metadata || {}) as Record<string, unknown>;
+  const rawProductUrl = typeof docMetadata.product_url === "string" ? docMetadata.product_url : null;
+  const productUrl = rawProductUrl && /^https:\/\/([a-z0-9-]+\.)*apiant\.com\//.test(rawProductUrl)
+    ? rawProductUrl
+    : null;
+  const productCtaLabel = typeof docMetadata.product_cta_label === "string"
+    ? docMetadata.product_cta_label
+    : null;
 
   // Fetch child documents
   const { data: childDocs } = await supabase
@@ -342,6 +355,18 @@ export default async function DocPage({ params }: Props) {
         {/* Child document cards */}
         {childDocs && childDocs.length > 0 && (
           <ChildCards children={childDocs} />
+        )}
+
+        {/* Product CTA — parent pages of an API App link out to the marketing
+            page for that product. Driven by metadata.product_url so the URL is
+            content (editable via API/MCP), not a hardcoded slug table. */}
+        {productUrl && (
+          <ProductCta
+            href={productUrl}
+            title={doc.title}
+            description={doc.description}
+            label={productCtaLabel}
+          />
         )}
 
         {/* Related docs */}

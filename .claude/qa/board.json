@@ -93,5 +93,53 @@
    "2026-08-16",
    "Seeding read: Next.js app router (src/app)."
   ]
- ]
+ ],
+ "coverage": {
+  "items": [
+   [
+    "scan",
+    "/dashboard/docs",
+    "new",
+    ""
+   ],
+   [
+    "scan",
+    "/docs/*",
+    "new",
+    ""
+   ],
+   [
+    "scan",
+    "/docs",
+    "new",
+    ""
+   ],
+   [
+    "scan",
+    "[api] /api/docs/*",
+    "new",
+    ""
+   ],
+   [
+    "scan",
+    "[api] /api/docs",
+    "new",
+    ""
+   ],
+   [
+    "scan",
+    "[api] /api/docs/tree",
+    "new",
+    ""
+   ],
+   [
+    "scan",
+    "[api] /api/images",
+    "new",
+    ""
+   ]
+  ],
+  "at": "2026-08-16T13:46Z",
+  "scannedTo": "e467c2b26e1866f25caa8c1aa8414db84b2d2a84"
+ }
 }

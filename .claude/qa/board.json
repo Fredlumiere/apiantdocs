@@ -1,0 +1,97 @@
+{
+ "product": "apiantdocs",
+ "group": "apiant",
+ "stamp": "seeded 2026-08-16 · nothing tested yet",
+ "running": false,
+ "issueBaseUrl": "https://github.com/Fredlumiere/apiantdocs/issues/",
+ "issuesHeading": "Issues",
+ "lastCommit": "288dc6751df3c70a374109a6aea9f1dba2fcd2fa",
+ "areas": [
+  {
+   "name": "A · Pages",
+   "tests": [
+    [
+     "/ loads",
+     "pending",
+     "route exists in the app router, never opened"
+    ],
+    [
+     "/api-reference loads",
+     "pending",
+     "route exists in the app router, never opened"
+    ],
+    [
+     "/dashboard loads",
+     "pending",
+     "route exists in the app router, never opened"
+    ],
+    [
+     "/dashboard/keys loads",
+     "pending",
+     "route exists in the app router, never opened"
+    ],
+    [
+     "/edit/[...slug] loads",
+     "pending",
+     "route exists in the app router, never opened"
+    ],
+    [
+     "/login loads",
+     "pending",
+     "route exists in the app router, never opened"
+    ],
+    [
+     "/reset-password loads",
+     "pending",
+     "route exists in the app router, never opened"
+    ],
+    [
+     "/signup loads",
+     "pending",
+     "route exists in the app router, never opened"
+    ]
+   ]
+  },
+  {
+   "name": "B · API routes",
+   "tests": [
+    [
+     "/api/chat: serves the right caller and refuses the wrong one",
+     "pending",
+     "handler exists. Allow AND deny paths are two different tests"
+    ],
+    [
+     "/api/keys: serves the right caller and refuses the wrong one",
+     "pending",
+     "handler exists. Allow AND deny paths are two different tests"
+    ],
+    [
+     "/api/mcp-version: serves the right caller and refuses the wrong one",
+     "pending",
+     "handler exists. Allow AND deny paths are two different tests"
+    ],
+    [
+     "/api/search: serves the right caller and refuses the wrong one",
+     "pending",
+     "handler exists. Allow AND deny paths are two different tests"
+    ],
+    [
+     "/auth/callback: serves the right caller and refuses the wrong one",
+     "pending",
+     "handler exists. Allow AND deny paths are two different tests"
+    ]
+   ]
+  }
+ ],
+ "issues": [],
+ "log": [
+  [
+   "2026-08-16",
+   "Board created by /qa-board init. Every row is pending: seeded from what exists in the repo, never from anything that was tested."
+  ],
+  [
+   "2026-08-16",
+   "Seeding read: Next.js app router (src/app)."
+  ]
+ ]
+}

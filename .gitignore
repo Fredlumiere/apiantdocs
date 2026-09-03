@@ -47,3 +47,6 @@ migration2/
 scripts/dist/
 .env*.local
 /baselines/
+
+# QA board render output (source of truth is .claude/qa/board.json)
+.claude/qa/board.html

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase";
 import { requireWriteAccess } from "@/lib/api-auth";
+import { embedDocument } from "@/lib/embeddings";
 import { corsHeaders } from "@/lib/cors";
 import { resolveParent, nextSortOrder, unknownFieldWarnings } from "@/lib/doc-hierarchy";
 
@@ -141,6 +142,16 @@ export async function POST(request: NextRequest) {
     changed_by: request.headers.get("x-changed-by") || "api",
     change_summary: "Initial creation",
   });
+
+  // Index for semantic search (Ask AI) when published. Best-effort: a failure
+  // here (e.g. VOYAGE_API_KEY unset) must never fail document creation.
+  if (data.status === "published") {
+    try {
+      await embedDocument(data.id);
+    } catch (err) {
+      console.error("[apiantdocs] embedDocument after create failed:", err);
+    }
+  }
 
   return NextResponse.json(
     warnings.length > 0 ? { data, warnings } : { data },

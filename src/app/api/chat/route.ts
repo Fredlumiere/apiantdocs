@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { createServerClient } from "@/lib/supabase";
 import { corsHeaders } from "@/lib/cors";
+import { semanticSearch } from "@/lib/embeddings";
 
 export async function OPTIONS() {
   return corsHeaders(new NextResponse(null, { status: 204 }));
@@ -30,6 +31,14 @@ function sanitizeQuery(input: string): string {
   return input
     .replace(/[%_\\;]/g, "")
     .replace(/[(){}[\]]/g, "")
+    // Neutralize Postgres websearch_to_tsquery operators. A natural question can
+    // contain a leading "-" (read as NOT), quotes (phrase match), or +/~/*/<>
+    // that would otherwise exclude or distort results — e.g. pasting a title like
+    // "...Appointments - Setup" made "-Setup" exclude the exact page being viewed.
+    // Replace these with spaces so keyword search treats them as plain words.
+    .replace(/["'<>~*+]/g, " ")
+    .replace(/-/g, " ")
+    .replace(/\s+/g, " ")
     .trim()
     .slice(0, 500);
 }
@@ -74,25 +83,49 @@ export async function POST(request: NextRequest) {
   const supabase = createServerClient();
   const sanitized = sanitizeQuery(question);
 
-  // Use search_documents RPC for ranked full-text retrieval
-  const { data: docs } = await supabase.rpc("search_documents", {
-    search_query: sanitized,
-    filter_product: product || null,
-    result_limit: 5,
-  });
+  // Hybrid retrieval: semantic (meaning-based) + full-text (keyword), merged.
+  // Semantic gets the raw question (punctuation is fine for embeddings); keyword
+  // gets the sanitized query. semanticSearch() returns [] on any failure (e.g.
+  // VOYAGE_API_KEY unset or no embeddings yet), so retrieval degrades safely to
+  // keyword-only — never worse than the previous behavior.
+  const [semantic, keywordRes] = await Promise.all([
+    semanticSearch(question, 5, product),
+    supabase.rpc("search_documents", {
+      search_query: sanitized,
+      filter_product: product || null,
+      result_limit: 5,
+    }),
+  ]);
+  const keyword = (keywordRes.data as { id: string }[] | null) || [];
 
-  if (!docs || docs.length === 0) {
+  // Ordered, de-duplicated document IDs: semantic hits first (they best capture
+  // intent), then any keyword hits not already present.
+  const orderedIds: string[] = [];
+  for (const s of semantic) {
+    if (!orderedIds.includes(s.document_id)) orderedIds.push(s.document_id);
+  }
+  for (const k of keyword) {
+    if (!orderedIds.includes(k.id)) orderedIds.push(k.id);
+  }
+  const topIds = orderedIds.slice(0, 5);
+
+  if (topIds.length === 0) {
     return NextResponse.json({
       answer: "I couldn't find any relevant documentation for your question. Try rephrasing or browsing the docs directly.",
       citations: [],
     });
   }
 
-  // Fetch full body for top results
-  const { data: fullDocs } = await supabase
+  // Fetch full body for the selected docs (published only), preserving rank order.
+  const { data: fetched } = await supabase
     .from("documents")
     .select("id, slug, title, body")
-    .in("id", docs.map((d: { id: string }) => d.id));
+    .eq("status", "published")
+    .in("id", topIds);
+
+  const fullDocs = topIds
+    .map((id) => (fetched || []).find((d) => d.id === id))
+    .filter(Boolean) as { id: string; slug: string; title: string; body: string }[];
 
   if (!fullDocs || fullDocs.length === 0) {
     return NextResponse.json({

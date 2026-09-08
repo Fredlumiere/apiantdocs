@@ -39,6 +39,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export const revalidate = 60;
 
+// Without a generateStaticParams export, Next 16 renders a dynamic segment on
+// every request and answers with `private, no-cache, no-store`, so the
+// `revalidate` above never applied and Vercel cached nothing. Returning an
+// empty list keeps the build free of database calls while switching the route
+// to on-demand ISR: first request renders and is cached, later requests are
+// served from cache and revalidated in the background after 60 s. Verified
+// locally with next start on both variants (issue #10, PR #11).
+export async function generateStaticParams(): Promise<{ slug: string[] }[]> {
+  return [];
+}
+
 export default async function DocPage({ params }: Props) {
   const { slug } = await params;
   const fullSlug = slug.join("/");
@@ -53,32 +64,46 @@ export default async function DocPage({ params }: Props) {
 
   if (!doc) notFound();
 
-  // Fetch parent doc title/slug for breadcrumbs
-  let parentTitle: string | null = null;
-  let parentSlug: string | null = null;
-  if (doc.parent_id) {
-    const { data: parent } = await supabase
+  // Everything below depends only on `doc`, so issue the reads together
+  // instead of one round trip after another (this was six sequential queries
+  // before the body could render; see issue #10 for what that cost when the
+  // database was slow).
+  const [parentRes, allDocsRes, childDocsRes, srcEmbRes] = await Promise.all([
+    doc.parent_id
+      ? supabase.from("documents").select("title, slug").eq("id", doc.parent_id).single()
+      : Promise.resolve({ data: null }),
+    supabase
       .from("documents")
-      .select("title, slug")
-      .eq("id", doc.parent_id)
-      .single();
-    if (parent) {
-      parentTitle = parent.title;
-      parentSlug = parent.slug;
-    }
-  }
+      .select("id, slug, title, doc_type, product, parent_id, sort_order")
+      .eq("status", "published")
+      .order("sort_order", { ascending: true }),
+    supabase
+      .from("documents")
+      .select("slug, title, description, doc_type")
+      .eq("parent_id", doc.id)
+      .eq("status", "published")
+      .order("sort_order", { ascending: true }),
+    supabase
+      .from("doc_embeddings")
+      .select("embedding")
+      .eq("document_id", doc.id)
+      .order("chunk_index", { ascending: true })
+      .limit(1)
+      .maybeSingle(),
+  ]);
 
-  // Fetch prev/next by walking the full sidebar tree (DFS). Earlier this used
+  // Parent doc title/slug for breadcrumbs
+  const parent = parentRes.data as { title: string; slug: string } | null;
+  const parentTitle: string | null = parent?.title ?? null;
+  const parentSlug: string | null = parent?.slug ?? null;
+
+  // Prev/next by walking the full sidebar tree (DFS). Earlier this used
   // a flat sort_order query scoped to product, which produced wrong neighbors
   // when the sidebar grouped pages under parents (e.g. "Install the Plugin"
   // got "The Four Core Objects" as Previous), and missed cross-product nesting
   // (Automations and Assemblies live in platform-ui but render under
   // platform's "The Four Core Objects" via parent_id).
-  const { data: allDocs } = await supabase
-    .from("documents")
-    .select("id, slug, title, doc_type, product, parent_id, sort_order")
-    .eq("status", "published")
-    .order("sort_order", { ascending: true });
+  const allDocs = allDocsRes.data;
 
   const fullTree = buildTree((allDocs as FlatDoc[]) || []);
   const flat = flattenTreeForSidebar(fullTree);
@@ -96,13 +121,7 @@ export default async function DocPage({ params }: Props) {
     }
   }
 
-  // Fetch child documents
-  const { data: childDocs } = await supabase
-    .from("documents")
-    .select("slug, title, description, doc_type")
-    .eq("parent_id", doc.id)
-    .eq("status", "published")
-    .order("sort_order", { ascending: true });
+  const childDocs = childDocsRes.data;
 
   // Related docs — semantic similarity over body embeddings, scoped to same product.
   // Tag overlap was too noisy on broad tags like "automation"; cosine on the body's
@@ -110,13 +129,7 @@ export default async function DocPage({ params }: Props) {
   const docTags: string[] = doc.tags || [];
   let relatedDocs: { slug: string; title: string; tags: string[] }[] = [];
   {
-    const { data: srcEmb } = await supabase
-      .from("doc_embeddings")
-      .select("embedding")
-      .eq("document_id", doc.id)
-      .order("chunk_index", { ascending: true })
-      .limit(1)
-      .maybeSingle();
+    const srcEmb = srcEmbRes.data as { embedding: string | number[] } | null;
     if (srcEmb?.embedding) {
       const { data: matches } = await supabase.rpc("match_doc_embeddings", {
         query_embedding: typeof srcEmb.embedding === "string" ? srcEmb.embedding : JSON.stringify(srcEmb.embedding),

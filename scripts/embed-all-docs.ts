@@ -1,8 +1,16 @@
 /**
  * Embed all published documents that don't have embeddings yet.
  * Run after migration or when VOYAGE_API_KEY becomes available.
+ * Also run by .github/workflows/embed-new-docs.yml on a schedule.
  *
- * Usage: node scripts/dist/embed-all-docs.js
+ * Usage: npx tsx scripts/embed-all-docs.ts
+ *
+ * Idempotent: a document is embedded only if it has no chunk rows, and a
+ * document's old rows are deleted before its new rows are inserted. The
+ * "already embedded" set is read page by page because PostgREST caps a single
+ * response at 1,000 rows (Supabase max_rows). The previous version asked for
+ * 10,000 rows in one call, got 1,000, treated every other document as missing
+ * and re-inserted its embeddings on every run (issue #10).
  */
 
 import { createClient } from "@supabase/supabase-js";
@@ -60,6 +68,29 @@ async function generateEmbeddings(texts: string[]): Promise<number[][]> {
   return results;
 }
 
+
+/**
+ * Every document_id that has at least one chunk row. Reads only chunk 0 (one
+ * row per embedded document) and pages through with range() so the result is
+ * complete regardless of PostgREST's max_rows cap.
+ */
+async function fetchEmbeddedDocIds(): Promise<Set<string>> {
+  const PAGE = 1000;
+  const ids = new Set<string>();
+  for (let from = 0; ; from += PAGE) {
+    const { data, error } = await supabase
+      .from("doc_embeddings")
+      .select("document_id")
+      .eq("chunk_index", 0)
+      .order("document_id", { ascending: true })
+      .range(from, from + PAGE - 1);
+    if (error) throw new Error(`Failed to read embedded document ids: ${error.message}`);
+    for (const row of data || []) ids.add(row.document_id);
+    if (!data || data.length < PAGE) break;
+  }
+  return ids;
+}
+
 async function main() {
   console.log("=== Embed All Documents ===\n");
 
@@ -74,12 +105,7 @@ async function main() {
     return;
   }
 
-  const { data: embeddedIds } = await supabase
-    .from("doc_embeddings")
-    .select("document_id")
-    .limit(10000);
-
-  const embeddedSet = new Set((embeddedIds || []).map((e) => e.document_id));
+  const embeddedSet = await fetchEmbeddedDocIds();
   const toEmbed = allDocs.filter((d) => !embeddedSet.has(d.id) && d.body);
 
   console.log(`Total docs: ${allDocs.length}, Already embedded: ${embeddedSet.size}, To embed: ${toEmbed.length}\n`);
@@ -101,6 +127,14 @@ async function main() {
         content,
         embedding: JSON.stringify(embeddings[i]),
       }));
+
+      // Replace, never append: drop any rows this document already has so a
+      // re-run (or a stale "already embedded" read) cannot duplicate them.
+      const { error: deleteError } = await supabase
+        .from("doc_embeddings")
+        .delete()
+        .eq("document_id", doc.id);
+      if (deleteError) throw new Error(deleteError.message);
 
       const { error } = await supabase.from("doc_embeddings").insert(rows);
       if (error) throw new Error(error.message);

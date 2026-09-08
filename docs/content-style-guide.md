@@ -251,6 +251,14 @@ Pages over the cap usually hide weak prose, scope creep, or content that belongs
 - Store in Supabase Storage `images` bucket (public)
 - Reference by Supabase public URL
 
+### Video and large GIFs
+
+- Screenshots and small GIFs (under 4 MB) go through `POST /api/images`
+- Video (`mp4`, `webm`) and GIFs over 4 MB go through `POST /api/media`, which returns a signed URL; PUT the file to that URL and it lands in the public `media` bucket (50 MB per file)
+- Embed video with `<video src="…" controls></video>`; embed a GIF as a normal image
+- Hosted video (YouTube, Vimeo, Loom, Wistia) can be embedded with its iframe; other iframe hosts are stripped by the renderer
+- Prefer mp4 over GIF for anything longer than a few seconds: a 10 MB GIF is usually a 1 MB mp4
+
 ## Formatting
 
 - **Bold**: UI labels, product names on first mention, key terms (never for cross-references — see Cross-References)

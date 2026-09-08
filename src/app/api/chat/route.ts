@@ -146,7 +146,9 @@ export async function POST(request: NextRequest) {
 
   try {
     const message = await anthropic.messages.create({
-      model: "claude-sonnet-4-20250514",
+      // Anthropic retired claude-sonnet-4-20250514; the API returned not_found
+      // and every chat call ended as a 500 (issue #12). Current Sonnet id.
+      model: "claude-sonnet-5",
       max_tokens: 1024,
       system: `You are a helpful documentation assistant for APIANT, an AI-first integration platform. Answer questions based on the provided documentation context. If the context doesn't contain enough information to answer, say so. Cite sources using [1], [2], etc. matching the numbered documents. Be concise and direct.`,
       messages: [

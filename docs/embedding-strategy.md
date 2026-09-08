@@ -100,7 +100,7 @@ using ONLY the provided documentation excerpts. Follow these rules:
 5. Format code with proper syntax highlighting markdown.
 ```
 
-Uses: Claude Sonnet (claude-sonnet-4-20250514), max_tokens 1024.
+Uses: Claude Sonnet 5 (claude-sonnet-5), max_tokens 1024.
 
 ---
 

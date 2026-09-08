@@ -39,6 +39,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export const revalidate = 60;
 
+// Without a generateStaticParams export, Next 16 renders a dynamic segment on
+// every request and answers with `private, no-cache, no-store`, so the
+// `revalidate` above never applied and Vercel cached nothing. Returning an
+// empty list keeps the build free of database calls while switching the route
+// to on-demand ISR: first request renders and is cached, later requests are
+// served from cache and revalidated in the background after 60 s. Verified
+// locally with next start on both variants (issue #10, PR #11).
+export async function generateStaticParams(): Promise<{ slug: string[] }[]> {
+  return [];
+}
+
 export default async function DocPage({ params }: Props) {
   const { slug } = await params;
   const fullSlug = slug.join("/");

@@ -143,7 +143,13 @@ export function MarkdownRenderer({ content }: { content: string }) {
             }
             return <VideoEmbed src={srcStr!} title={typeof title === "string" ? title : undefined} />;
           },
-          video: ({ src, children, ...props }: ComponentPropsWithoutRef<"video">) => (
+          video: ({ src, children, ...rest }: ComponentPropsWithoutRef<"video"> & { node?: unknown }) => {
+            // rehype-raw hands every component a `node` prop (the hast node).
+            // Spreading it onto <video> rendered node="[object Object]" in the
+            // HTML, so strip it before forwarding the remaining attributes.
+            const { node: _node, ...props } = rest;
+            void _node;
+            return (
             <div style={{
               marginBottom: "var(--space-6)",
               borderRadius: "var(--radius-lg)",
@@ -159,7 +165,8 @@ export function MarkdownRenderer({ content }: { content: string }) {
                 {children}
               </video>
             </div>
-          ),
+            );
+          },
         }}
       >
         {content}

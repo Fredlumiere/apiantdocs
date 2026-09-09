@@ -61,7 +61,18 @@ function VideoEmbed({ src, title }: { src: string; title?: string }) {
   );
 }
 
-function PreBlock({ children, ...props }: ComponentPropsWithoutRef<"pre">) {
+// rehype-raw passes every component a `node` prop (the hast node). Any component
+// that spreads its remaining props onto a DOM element must drop it first, or the
+// HTML carries node="[object Object]" on that element.
+type WithNode<T> = T & { node?: unknown };
+function stripNode<T extends { node?: unknown }>(props: T): Omit<T, "node"> {
+  const { node: _node, ...rest } = props;
+  void _node;
+  return rest;
+}
+
+function PreBlock({ children, ...preProps }: WithNode<ComponentPropsWithoutRef<"pre">>) {
+  const props = stripNode(preProps);
   // Check if children is a <code> element with a language class
   if (
     children &&
@@ -106,7 +117,8 @@ export function MarkdownRenderer({ content }: { content: string }) {
           [rehypeAutolinkHeadings, { behavior: "wrap" }],
         ]}
         components={{
-          a: ({ href, children, ...props }) => {
+          a: ({ href, children, ...rest }) => {
+            const props = stripNode(rest as WithNode<typeof rest>);
             const isExternal = href && (href.startsWith("http") || href.startsWith("//")) && !href.includes("apiantdocs");
             return (
               <a
@@ -131,9 +143,9 @@ export function MarkdownRenderer({ content }: { content: string }) {
             if (typeof width === "string" || typeof width === "number") w = String(width);
             return <ImageFrame src={typeof src === "string" ? src : undefined} alt={typeof alt === "string" ? alt : undefined} width={w} />;
           },
-          table: ({ children, ...props }) => (
+          table: ({ children, ...rest }) => (
             <div style={{ overflowX: "auto", marginBottom: "var(--space-4)" }}>
-              <table {...props}>{children}</table>
+              <table {...stripNode(rest as WithNode<typeof rest>)}>{children}</table>
             </div>
           ),
           iframe: ({ src, title, ...props }: ComponentPropsWithoutRef<"iframe">) => {
@@ -143,12 +155,8 @@ export function MarkdownRenderer({ content }: { content: string }) {
             }
             return <VideoEmbed src={srcStr!} title={typeof title === "string" ? title : undefined} />;
           },
-          video: ({ src, children, ...rest }: ComponentPropsWithoutRef<"video"> & { node?: unknown }) => {
-            // rehype-raw hands every component a `node` prop (the hast node).
-            // Spreading it onto <video> rendered node="[object Object]" in the
-            // HTML, so strip it before forwarding the remaining attributes.
-            const { node: _node, ...props } = rest;
-            void _node;
+          video: ({ src, children, ...rest }: WithNode<ComponentPropsWithoutRef<"video">>) => {
+            const props = stripNode(rest);
             return (
             <div style={{
               marginBottom: "var(--space-6)",

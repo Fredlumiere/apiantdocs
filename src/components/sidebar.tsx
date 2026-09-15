@@ -5,7 +5,7 @@ import { createServerClient } from "@/lib/supabase";
 import { buildTree, type FlatDoc } from "@/lib/doc-tree";
 import { scopeToSite } from "@/lib/site-docs";
 
-async function fetchTree(): Promise<TreeNode[]> {
+export async function fetchTree(): Promise<TreeNode[]> {
   try {
     const supabase = createServerClient();
     const { data } = await scopeToSite(
@@ -20,8 +20,9 @@ async function fetchTree(): Promise<TreeNode[]> {
   }
 }
 
-export async function Sidebar() {
-  const tree = await fetchTree();
+/** Pass `tree` when the caller already fetched it (the apiant-ai docs layout does). */
+export async function Sidebar({ tree: fetched }: { tree?: TreeNode[] } = {}) {
+  const tree = fetched ?? (await fetchTree());
 
   return (
     <>

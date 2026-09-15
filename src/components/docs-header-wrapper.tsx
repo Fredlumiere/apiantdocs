@@ -3,8 +3,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { DocsHeader } from "./docs-header";
+import { ApiantAiMenu } from "./apiant-ai-menu";
+import { DocsSubmenu } from "./docs-submenu";
 import { PRODUCT_LABELS, DOC_TYPE_LABELS } from "@/lib/constants";
-import { apiPath } from "@/lib/site";
+import { apiPath, isApiantAiSite } from "@/lib/site";
+import type { DocSection } from "@/lib/doc-sections";
 
 interface SearchResult {
   id: string;
@@ -17,7 +20,11 @@ interface SearchResult {
   rank: number;
 }
 
-export function DocsHeaderWrapper() {
+/**
+ * `sections` is used on the apiant-ai site only, where the header is
+ * apiant.ai's menu plus the Docs submenu. The classic site renders DocsHeader.
+ */
+export function DocsHeaderWrapper({ sections = [] }: { sections?: DocSection[] }) {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
@@ -113,7 +120,15 @@ export function DocsHeaderWrapper() {
 
   return (
     <>
-      <DocsHeader onOpenSearch={openSearch} />
+      {isApiantAiSite() ? (
+        <div className="aai-chrome">
+          <ApiantAiMenu />
+          <DocsSubmenu sections={sections} onOpenSearch={openSearch} />
+          <div className="aai-rule" aria-hidden="true" />
+        </div>
+      ) : (
+        <DocsHeader onOpenSearch={openSearch} />
+      )}
 
       {isSearchOpen && (
         <div

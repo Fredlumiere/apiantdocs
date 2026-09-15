@@ -235,6 +235,14 @@ export function MobileSidebarToggle({ tree }: { tree: TreeNode[] }) {
     setIsOpen(false);
   }, [pathname]);
 
+  // The apiant-ai site's Docs submenu opens the drawer from its own button
+  // (this component's button is hidden there). Nothing sends it on classic.
+  useEffect(() => {
+    const open = () => setIsOpen(true);
+    window.addEventListener("open-docs-sidebar", open);
+    return () => window.removeEventListener("open-docs-sidebar", open);
+  }, []);
+
   return (
     <>
       <button
@@ -261,6 +269,7 @@ export function MobileSidebarToggle({ tree }: { tree: TreeNode[] }) {
 
       {isOpen && (
         <div
+          className="mobile-sidebar-drawer"
           style={{
             position: "fixed",
             inset: 0,

@@ -6,17 +6,27 @@
  *   npx tsx scripts/import-apiant-ai-content.ts --dir=<folder> --env=.env.staging            # dry run
  *   npx tsx scripts/import-apiant-ai-content.ts --dir=<folder> --env=.env.staging --commit   # write
  *
+ * Options:
+ *   --status=published|draft   Status to set. Without it, new pages are drafts
+ *                              and existing pages keep their status.
+ *   --claim=<slug>[,<slug>]    Existing pages of another product (e.g. classic
+ *                              'platform' pages) to take over: updated in place
+ *                              with product apiant-ai, so they leave
+ *                              info.apiant.com. Unlisted conflicts are refused.
+ *
  * Behavior:
  * - Dry run by default. It reads the target (to find existing slugs and
  *   parents) and prints what it would do; nothing is written without --commit.
- * - New pages are inserted with status "draft" and a doc_versions row
- *   (version 1). Publishing stays a separate, deliberate step.
- * - An existing apiant-ai page with the same slug gets its title,
- *   description, body, doc_type, parent and sort_order updated, its version
- *   incremented and a doc_versions row written. Its status is left alone,
- *   so re-running the import never unpublishes a page.
- * - A slug already used by a page of another product is refused: slugs are
- *   unique across info.apiant.com and apiant.ai.
+ * - New pages are inserted with a doc_versions row (version 1), as drafts
+ *   unless --status=published.
+ * - An existing apiant-ai page with the same slug (or a claimed page) gets
+ *   its title, description, body, doc_type, parent, sort_order and
+ *   render_mode (markdown) updated, product set to apiant-ai, version
+ *   incremented and a doc_versions row written. Its status changes only with
+ *   --status, so a plain re-run never unpublishes a page.
+ * - A slug already used by a page of another product is refused unless
+ *   claimed: slugs are unique across info.apiant.com and apiant.ai. The dry
+ *   run lists pages of other products left under a claimed parent.
  * - Parents are resolved by parent_slug, from this import or the target, and
  *   must be apiant-ai pages.
  * - Embeddings are not generated. Run scripts/embed-all-docs.ts against the
@@ -63,8 +73,14 @@ async function main() {
   const dir = arg("dir");
   const envFile = arg("env");
   const commit = flag("commit");
+  const statusArg = arg("status");
+  if (statusArg !== null && statusArg !== "published" && statusArg !== "draft") {
+    console.error("--status must be published or draft");
+    process.exit(2);
+  }
+  const claim = new Set((arg("claim") || "").split(",").map((x) => x.trim()).filter(Boolean));
   if (!dir || !envFile) {
-    console.error("Usage: npx tsx scripts/import-apiant-ai-content.ts --dir=<folder> --env=<env file> [--commit]");
+    console.error("Usage: npx tsx scripts/import-apiant-ai-content.ts --dir=<folder> --env=<env file> [--status=published|draft] [--claim=<slug,...>] [--commit]");
     process.exit(2);
   }
 
@@ -90,17 +106,37 @@ async function main() {
 
   const supabase = createClient(url, key);
   const slugs = [...new Set(plan.docs.flatMap((d) => [d.slug, ...(d.parent_slug ? [d.parent_slug] : [])]))];
-  const existing: TargetDoc[] = [];
+  const existing: (TargetDoc & { published_at: string | null })[] = [];
   for (let i = 0; i < slugs.length; i += 100) {
     const { data, error } = await supabase
       .from("documents")
-      .select("id, slug, product, version")
+      .select("id, slug, product, version, published_at")
       .in("slug", slugs.slice(i, i + 100));
     if (error) throw error;
-    existing.push(...((data || []) as TargetDoc[]));
+    existing.push(...((data || []) as (TargetDoc & { published_at: string | null })[]));
   }
   const existingBySlug = new Map(existing.map((d) => [d.slug, d]));
-  const actions = resolveActions(plan.docs, existingBySlug);
+  const actions = resolveActions(plan.docs, existingBySlug, { claim });
+  for (const slug of claim) {
+    if (!plan.docs.some((d) => d.slug === slug)) console.error(`  [warn] --claim=${slug} is not a page in this import; ignored`);
+  }
+
+  // A claimed page leaves info.apiant.com. Children that stay in another
+  // product lose their parent there and show at the root of that sidebar.
+  const claimedIds = actions.flatMap((a) => (a.kind === "update" && a.claimed ? [a.existing.id] : []));
+  if (claimedIds.length) {
+    const importing = new Set(plan.docs.map((d) => d.slug));
+    const { data: kids, error } = await supabase
+      .from("documents")
+      .select("slug, product, status, parent_id")
+      .in("parent_id", claimedIds);
+    if (error) throw error;
+    for (const k of (kids || []) as { slug: string; product: string | null; status: string }[]) {
+      if (!importing.has(k.slug) && k.product !== "apiant-ai") {
+        console.error(`  [warn] ${k.slug} (${k.product}, ${k.status}) stays on info.apiant.com but its parent is claimed; it will show at the root there`);
+      }
+    }
+  }
 
   const idBySlug = new Map(existing.map((d) => [d.slug, d.id]));
   let inserted = 0;
@@ -125,12 +161,14 @@ async function main() {
       body: doc.body,
       doc_type: doc.doc_type,
       product: "apiant-ai",
+      render_mode: "markdown",
       parent_id: parentId,
       ...(doc.sort_order !== null ? { sort_order: doc.sort_order } : {}),
     };
 
     if (!commit) {
-      console.log(`  [${action.kind} dry-run] ${doc.slug} (parent=${action.parentSlug ?? "none"})`);
+      const note = action.kind === "update" && action.claimed ? `, claims ${action.existing.product} page` : "";
+      console.log(`  [${action.kind} dry-run] ${doc.slug} (parent=${action.parentSlug ?? "none"}${note}, status=${statusArg ?? (action.kind === "insert" ? "draft" : "unchanged")})`);
       if (action.kind === "insert") idBySlug.set(doc.slug, "(dry-run)");
       if (action.kind === "insert") inserted++;
       else updated++;
@@ -140,7 +178,13 @@ async function main() {
     if (action.kind === "insert") {
       const { data, error } = await supabase
         .from("documents")
-        .insert({ slug: doc.slug, ...fields, status: "draft", version: 1 })
+        .insert({
+          slug: doc.slug,
+          ...fields,
+          status: statusArg ?? "draft",
+          published_at: statusArg === "published" ? new Date().toISOString() : null,
+          version: 1,
+        })
         .select("id")
         .single();
       if (error || !data) {
@@ -157,7 +201,17 @@ async function main() {
       inserted++;
     } else {
       const version = (action.existing.version ?? 1) + 1;
-      const { error } = await supabase.from("documents").update({ ...fields, version }).eq("id", action.existing.id);
+      const prior = existingBySlug.get(doc.slug) as (TargetDoc & { published_at: string | null }) | undefined;
+      const statusFields = statusArg
+        ? {
+            status: statusArg,
+            ...(statusArg === "published" && !prior?.published_at ? { published_at: new Date().toISOString() } : {}),
+          }
+        : {};
+      const { error } = await supabase
+        .from("documents")
+        .update({ ...fields, ...statusFields, version })
+        .eq("id", action.existing.id);
       if (error) {
         console.error(`  [error] update ${doc.slug}: ${error.message}`);
         failed++;
@@ -165,9 +219,12 @@ async function main() {
       }
       await supabase.from("doc_versions").insert({
         document_id: action.existing.id, version, title: doc.title, body: doc.body,
-        changed_by: "script:import-apiant-ai-content", change_summary: `Re-imported from ${doc.file}`,
+        changed_by: "script:import-apiant-ai-content",
+        change_summary: action.claimed
+          ? `Claimed from product ${action.existing.product} and imported from ${doc.file}`
+          : `Re-imported from ${doc.file}`,
       });
-      console.log(`  [updated] ${doc.slug} (v${version})`);
+      console.log(`  [updated] ${doc.slug} (v${version}${action.claimed ? `, was ${action.existing.product}` : ""})`);
       updated++;
     }
   }

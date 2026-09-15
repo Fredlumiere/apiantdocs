@@ -84,6 +84,30 @@ describe("resolveActions", () => {
     expect(actions[2].kind === "error" && actions[2].message).toContain("not apiant-ai");
   });
 
+  it("updates claimed pages of another product in place, parents included", () => {
+    const refPlan = planImport([
+      { file: "r.md", raw: page("title: Reference\nslug: reference") },
+      { file: "t.md", raw: page("title: MCP tools\nslug: reference/mcp-tools\nparent_slug: reference") },
+      { file: "g.md", raw: page("title: Glossary\nslug: reference/glossary\nparent_slug: reference") },
+    ]).docs;
+    const existing = new Map<string, TargetDoc>([
+      ["reference", { id: "r", slug: "reference", product: "platform", version: 1 }],
+      ["reference/mcp-tools", { id: "t", slug: "reference/mcp-tools", product: "platform", version: 4 }],
+      ["reference/glossary", { id: "g", slug: "reference/glossary", product: "platform", version: 1 }],
+    ]);
+    const claim = new Set(["reference", "reference/mcp-tools", "reference/glossary"]);
+    const actions = resolveActions(refPlan, existing, { claim });
+    expect(actions.map((a) => `${a.kind}:${a.doc.slug}:${a.kind === "update" ? a.existing.id + ":" + a.claimed : ""}`)).toEqual([
+      "update:reference:r:true",
+      "update:reference/mcp-tools:t:true",
+      "update:reference/glossary:g:true",
+    ]);
+    // Without the claim, the same import is refused, never duplicated.
+    const refused = resolveActions(refPlan, existing);
+    expect(refused.map((a) => a.kind)).toEqual(["error", "error", "error"]);
+    expect(refused[0].kind === "error" && refused[0].message).toContain("--claim=reference");
+  });
+
   it("refuses a parent that exists nowhere", () => {
     const actions = resolveActions(plan, new Map());
     expect(actions[2].kind === "error" && actions[2].message).toContain("neither in this import nor in the target");

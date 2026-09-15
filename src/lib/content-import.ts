@@ -146,23 +146,44 @@ export interface TargetDoc {
 
 export type ImportAction =
   | { kind: "insert"; doc: ImportDoc; parentSlug: string | null }
-  | { kind: "update"; doc: ImportDoc; parentSlug: string | null; existing: TargetDoc }
+  | { kind: "update"; doc: ImportDoc; parentSlug: string | null; existing: TargetDoc; claimed: boolean }
   | { kind: "error"; doc: ImportDoc; message: string };
+
+export interface ResolveOptions {
+  /**
+   * Slugs of existing pages of another product (for example classic
+   * 'platform' pages) that this import may take over: the row is updated in
+   * place and its product becomes apiant-ai, which removes it from
+   * info.apiant.com. Anything not listed is refused.
+   */
+  claim?: Set<string>;
+}
 
 /**
  * Decide insert, update or refuse for each planned doc against what exists in
  * the target. Slugs are unique across products, so a slug already used by a
- * classic page is refused instead of being overwritten, and a parent must be
- * an apiant-ai page (in the batch or already in the target).
+ * page of another product is refused unless it is listed in options.claim,
+ * and a parent must be an apiant-ai page: in the batch, already apiant-ai in
+ * the target, or claimed.
  */
-export function resolveActions(planned: ImportDoc[], existingBySlug: Map<string, TargetDoc>): ImportAction[] {
+export function resolveActions(
+  planned: ImportDoc[],
+  existingBySlug: Map<string, TargetDoc>,
+  options: ResolveOptions = {},
+): ImportAction[] {
+  const claim = options.claim ?? new Set<string>();
   const batchSlugs = new Set(planned.map((d) => d.slug));
   const failed = new Set<string>();
   const actions: ImportAction[] = [];
   for (const doc of planned) {
     const existing = existingBySlug.get(doc.slug);
-    if (existing && existing.product !== APIANT_AI_PRODUCT) {
-      actions.push({ kind: "error", doc, message: `slug ${doc.slug} already belongs to a ${existing.product ?? "no-product"} page; choose another slug` });
+    const claimed = !!existing && existing.product !== APIANT_AI_PRODUCT && claim.has(doc.slug);
+    if (existing && existing.product !== APIANT_AI_PRODUCT && !claimed) {
+      actions.push({
+        kind: "error",
+        doc,
+        message: `slug ${doc.slug} already belongs to a ${existing.product ?? "no-product"} page; choose another slug, or pass --claim=${doc.slug} to convert that page to apiant-ai (it leaves info.apiant.com)`,
+      });
       failed.add(doc.slug);
       continue;
     }
@@ -180,13 +201,17 @@ export function resolveActions(planned: ImportDoc[], existingBySlug: Map<string,
           continue;
         }
         if (parent.product !== APIANT_AI_PRODUCT) {
-          actions.push({ kind: "error", doc, message: `parent ${doc.parent_slug} is a ${parent.product ?? "no-product"} page, not apiant-ai` });
+          actions.push({ kind: "error", doc, message: `parent ${doc.parent_slug} is a ${parent.product ?? "no-product"} page, not apiant-ai (import or claim it too)` });
           failed.add(doc.slug);
           continue;
         }
       }
     }
-    actions.push(existing ? { kind: "update", doc, parentSlug: doc.parent_slug, existing } : { kind: "insert", doc, parentSlug: doc.parent_slug });
+    actions.push(
+      existing
+        ? { kind: "update", doc, parentSlug: doc.parent_slug, existing, claimed }
+        : { kind: "insert", doc, parentSlug: doc.parent_slug },
+    );
   }
   return actions;
 }

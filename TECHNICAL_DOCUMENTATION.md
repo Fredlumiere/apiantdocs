@@ -690,6 +690,7 @@ Tags will use prefixed categories: `src:mindbody`, `dst:hubspot`, `audience:buil
 ### Scripts
 - `npx tsx scripts/migrate-from-export.ts` — One-time Archbee MDX migration
 - `npx tsx scripts/fix-images.ts` — Re-download failed image migrations
+- `npx tsx scripts/import-apiant-ai-content.ts --dir=<folder> --env=<env file> [--commit]` - Import Markdown pages with frontmatter (title, slug, parent_slug, sort_order, doc_type, description) as product `apiant-ai`. Dry run unless `--commit`; new pages land as drafts; refuses slugs owned by another product and the production project unless `--allow-prod`. Run `scripts/embed-all-docs.ts` afterwards.
 
 ### Site modes (classic and apiant.ai)
 

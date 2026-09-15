@@ -5,31 +5,11 @@ import Link from "next/link";
 import { UserMenu } from "./user-menu";
 import { ThemeToggle } from "./theme-toggle";
 import { useAuth } from "./auth-provider";
-import { isApiantAiSite, siteName } from "@/lib/site";
 
-// Cross-zone links on the apiant.ai site. Plain <a>, not <Link>: Next would
-// try to prefetch and soft-navigate into a different application.
-const APIANT_AI_LINKS = [
-  { label: "apiant.ai", href: "https://apiant.ai" },
-  { label: "Open app", href: "https://app.apiant.ai" },
-];
-
-const navLinkStyle: React.CSSProperties = {
-  fontSize: "14px",
-  color: "var(--text-secondary)",
-  textDecoration: "none",
-  transition: "color 0.1s",
-};
-
-const mobileLinkStyle: React.CSSProperties = {
-  fontSize: "16px",
-  color: "var(--text-secondary)",
-  textDecoration: "none",
-  padding: "var(--space-2) var(--space-3)",
-  borderRadius: "var(--radius-md)",
-  transition: "background 0.1s",
-};
-
+/**
+ * The classic site's header. The apiant.ai site renders apiant.ai's menu and
+ * the Docs submenu instead (see DocsHeaderWrapper).
+ */
 interface DocsHeaderProps {
   onOpenSearch: () => void;
 }
@@ -49,7 +29,6 @@ export function DocsHeader({ onOpenSearch }: DocsHeaderProps) {
   }, [mobileMenuOpen]);
 
   const closeMobile = useCallback(() => setMobileMenuOpen(false), []);
-  const apiantAi = isApiantAiSite();
 
   return (
     <header
@@ -68,27 +47,6 @@ export function DocsHeader({ onOpenSearch }: DocsHeaderProps) {
     >
       {/* Left: Logo + Nav */}
       <div style={{ display: "flex", alignItems: "center", gap: "var(--space-6)" }}>
-        {apiantAi ? (
-          <Link
-            href="/docs"
-            style={{
-              display: "flex",
-              alignItems: "center",
-              textDecoration: "none",
-              gap: "6px",
-            }}
-            aria-label={siteName()}
-          >
-            {/* Text wordmark: under apiant.ai only /docs/* reaches this app,
-                so /apiant-logo.svg from public/ would not resolve there. */}
-            <span style={{ fontSize: "16px", fontWeight: 700, letterSpacing: "-0.01em", color: "var(--text-primary)" }}>
-              APIANT.ai
-            </span>
-            <span style={{ fontSize: "16px", fontWeight: 400, color: "var(--text-secondary)" }}>
-              Docs
-            </span>
-          </Link>
-        ) : (
         <Link
           href="/"
           style={{
@@ -104,22 +62,10 @@ export function DocsHeader({ onOpenSearch }: DocsHeaderProps) {
             style={{ height: "23px", width: "auto" }}
           />
         </Link>
-        )}
 
         {/* Desktop nav links */}
         <nav className="desktop-nav-links" style={{ display: "flex", alignItems: "center", gap: "var(--space-4)" }}>
-          {apiantAi && APIANT_AI_LINKS.map((l) => (
-            <a
-              key={l.href}
-              href={l.href}
-              style={navLinkStyle}
-              onMouseEnter={(e) => (e.currentTarget.style.color = "var(--text-primary)")}
-              onMouseLeave={(e) => (e.currentTarget.style.color = "var(--text-secondary)")}
-            >
-              {l.label}
-            </a>
-          ))}
-          {!apiantAi && user && <Link
+          {user && <Link
             href="/api-reference"
             style={{
               fontSize: "14px",
@@ -182,8 +128,8 @@ export function DocsHeader({ onOpenSearch }: DocsHeaderProps) {
         {/* Theme toggle */}
         <ThemeToggle />
 
-        {/* User menu (sign-in and editing belong to the classic site) */}
-        {!apiantAi && <UserMenu />}
+        {/* User menu */}
+        <UserMenu />
 
         {/* Mobile hamburger */}
         <button
@@ -272,12 +218,7 @@ export function DocsHeader({ onOpenSearch }: DocsHeaderProps) {
               >
                 Docs
               </Link>
-              {apiantAi && APIANT_AI_LINKS.map((l) => (
-                <a key={l.href} href={l.href} onClick={closeMobile} style={mobileLinkStyle}>
-                  {l.label}
-                </a>
-              ))}
-              {!apiantAi && user && <Link
+              {user && <Link
                 href="/api-reference"
                 onClick={closeMobile}
                 style={{

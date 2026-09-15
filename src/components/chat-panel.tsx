@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import ReactMarkdown from "react-markdown";
 import Link from "next/link";
-import { apiPath } from "@/lib/site";
+import { apiPath, isApiantAiSite } from "@/lib/site";
 
 interface Citation {
   index: number;
@@ -131,6 +131,33 @@ export function ChatPanel() {
     }
   }
 
+  // The apiant.ai zone uses the app's brand button: gradient, dark ink, drop
+  // shadow (classes in src/lib/apiant-ai-brand.ts). Classic keeps its styles.
+  const apiantAi = isApiantAiSite();
+
+  if (!isOpen && apiantAi) {
+    return (
+      <button
+        onClick={() => setIsOpen(true)}
+        className="aai-btn-brand"
+        style={{
+          position: "fixed",
+          bottom: "var(--space-6)",
+          right: "var(--space-6)",
+          width: "48px",
+          height: "48px",
+          borderRadius: "50%",
+          zIndex: 30,
+        }}
+        aria-label="Open chat"
+      >
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z" />
+        </svg>
+      </button>
+    );
+  }
+
   if (!isOpen) {
     return (
       <button
@@ -172,6 +199,7 @@ export function ChatPanel() {
 
   return (
     <div
+      className="chat-panel"
       style={{
         position: "fixed",
         bottom: 0,
@@ -431,7 +459,13 @@ export function ChatPanel() {
           <button
             onClick={() => sendMessage()}
             disabled={loading || input.trim().length < 3}
-            style={{
+            className={apiantAi && input.trim().length >= 3 && !loading ? "aai-btn-brand" : undefined}
+            style={apiantAi && input.trim().length >= 3 && !loading ? {
+              width: "36px",
+              height: "36px",
+              borderRadius: "var(--radius-md)",
+              flexShrink: 0,
+            } : {
               width: "36px",
               height: "36px",
               borderRadius: "var(--radius-md)",

@@ -704,7 +704,9 @@ One codebase, two Vercel projects. `DOCS_SITE` is read at build time.
 | Assets | `/_next/*` | `/docs/_next/*` (`assetPrefix`) |
 | Browser API calls | `/api/search`, `/api/chat` | `/docs/api/search`, `/docs/api/chat` (rewritten to `/api/*`; `apiPath()` in `src/lib/site.ts`) |
 | Archbee redirects | on | off; `/` redirects to `/docs` |
-| Header | APIANT logo, sign-in, edit | "APIANT.ai Docs", links to apiant.ai and app.apiant.ai, Copy page / View .md |
+| Header | APIANT logo, sign-in, edit, theme toggle | apiant.ai's menu (from apiant.ai `site.js`, absolute links, Docs current), a Docs submenu with section tabs, search and Ask AI, the app's 2px gradient rule; dark only; Copy page / View .md |
+| Footer | none | apiant.ai's footer (from `site.js`) |
+| Theme | Geist, green accent | apiant.ai tokens and fonts, app radii and brand button; all in `src/lib/apiant-ai-brand.ts`, inlined as a `<style>` so the classic CSS bundle is untouched |
 | `/docs/sitemap.xml` | 404 | sitemap of in-scope pages |
 
 Both modes serve `/docs/llms.txt` and `/docs/<slug>.md` (raw Markdown, rewritten in `middleware.ts` to `/api/markdown/<slug>`).

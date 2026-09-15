@@ -4,6 +4,7 @@ import { requireWriteAccess, validateSession } from "@/lib/api-auth";
 import { embedDocument } from "@/lib/embeddings";
 import { corsHeaders } from "@/lib/cors";
 import { resolveParent, unknownFieldWarnings } from "@/lib/doc-hierarchy";
+import { siteProduct } from "@/lib/site";
 
 const UPDATE_ALLOWED_FIELDS = [
   "slug",
@@ -93,6 +94,11 @@ export async function GET(
   } else {
     query = query.eq("status", "published");
   }
+
+  // apiant-ai zone: only its own pages. Classic mode reads every product,
+  // because writer agents read back pages of any product through this API.
+  const scopedProduct = siteProduct();
+  if (scopedProduct) query = query.eq("product", scopedProduct);
 
   const { data, error } = await query.single();
 

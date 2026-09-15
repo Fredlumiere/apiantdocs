@@ -3,15 +3,17 @@ import { SidebarResize } from "@/components/sidebar-resize";
 import type { TreeNode } from "@/components/sidebar-tree";
 import { createServerClient } from "@/lib/supabase";
 import { buildTree, type FlatDoc } from "@/lib/doc-tree";
+import { scopeToSite } from "@/lib/site-docs";
 
 async function fetchTree(): Promise<TreeNode[]> {
   try {
     const supabase = createServerClient();
-    const { data } = await supabase
-      .from("documents")
-      .select("id, slug, title, doc_type, product, parent_id, sort_order")
-      .eq("status", "published")
-      .order("sort_order", { ascending: true });
+    const { data } = await scopeToSite(
+      supabase
+        .from("documents")
+        .select("id, slug, title, doc_type, product, parent_id, sort_order")
+        .eq("status", "published")
+    ).order("sort_order", { ascending: true });
     return buildTree((data as FlatDoc[]) || []);
   } catch {
     return [];

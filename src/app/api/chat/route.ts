@@ -3,6 +3,8 @@ import Anthropic from "@anthropic-ai/sdk";
 import { createServerClient } from "@/lib/supabase";
 import { corsHeaders } from "@/lib/cors";
 import { semanticSearch } from "@/lib/embeddings";
+import { effectiveProduct, isApiantAiSite } from "@/lib/site";
+import { scopeForRequest } from "@/lib/site-docs";
 
 export async function OPTIONS() {
   return corsHeaders(new NextResponse(null, { status: 204 }));
@@ -69,7 +71,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
   const question = typeof body.question === "string" ? body.question.trim() : "";
-  const product = typeof body.product === "string" ? body.product : undefined;
+  // apiant-ai site: retrieval is always restricted to product 'apiant-ai'.
+  const product = effectiveProduct(typeof body.product === "string" ? body.product : undefined) ?? undefined;
 
   if (!question || question.length < 3) {
     return NextResponse.json({ error: "Question is required (min 3 chars)" }, { status: 400 });
@@ -107,25 +110,29 @@ export async function POST(request: NextRequest) {
   for (const k of keyword) {
     if (!orderedIds.includes(k.id)) orderedIds.push(k.id);
   }
-  const topIds = orderedIds.slice(0, 5);
-
-  if (topIds.length === 0) {
+  if (orderedIds.length === 0) {
     return NextResponse.json({
       answer: "I couldn't find any relevant documentation for your question. Try rephrasing or browsing the docs directly.",
       citations: [],
     });
   }
 
-  // Fetch full body for the selected docs (published only), preserving rank order.
-  const { data: fetched } = await supabase
-    .from("documents")
-    .select("id, slug, title, body")
-    .eq("status", "published")
-    .in("id", topIds);
+  // Fetch full body for the candidates (published and in this site's scope),
+  // preserving rank order, then keep the top 5. Scoping before the cut means
+  // an out-of-scope hit never takes a slot from an in-scope one.
+  const { data: fetched } = await scopeForRequest(
+    supabase
+      .from("documents")
+      .select("id, slug, title, body")
+      .eq("status", "published")
+      .in("id", orderedIds),
+    product
+  );
 
-  const fullDocs = topIds
+  const fullDocs = (orderedIds
     .map((id) => (fetched || []).find((d) => d.id === id))
-    .filter(Boolean) as { id: string; slug: string; title: string; body: string }[];
+    .filter(Boolean) as { id: string; slug: string; title: string; body: string }[])
+    .slice(0, 5);
 
   if (!fullDocs || fullDocs.length === 0) {
     return NextResponse.json({
@@ -150,7 +157,7 @@ export async function POST(request: NextRequest) {
       // and every chat call ended as a 500 (issue #12). Current Sonnet id.
       model: "claude-sonnet-5",
       max_tokens: 1024,
-      system: `You are a helpful documentation assistant for APIANT, an AI-first integration platform. Answer questions based on the provided documentation context. If the context doesn't contain enough information to answer, say so. Cite sources using [1], [2], etc. matching the numbered documents. Be concise and direct.`,
+      system: `You are a helpful documentation assistant for ${isApiantAiSite() ? "APIANT.ai" : "APIANT"}, an AI-first integration platform. Answer questions based on the provided documentation context. If the context doesn't contain enough information to answer, say so. Cite sources using [1], [2], etc. matching the numbered documents. Be concise and direct.`,
       messages: [
         {
           role: "user",

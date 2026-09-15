@@ -11,6 +11,9 @@ import { TagList } from "@/components/tag-list";
 import { EditButton } from "@/components/edit-button";
 import { DOC_TYPE_LABELS, PRODUCT_LABELS } from "@/lib/constants";
 import { buildTree, flattenTreeForSidebar, type FlatDoc } from "@/lib/doc-tree";
+import { CopyPageButton } from "@/components/copy-page-button";
+import { scopeToSite } from "@/lib/site-docs";
+import { inSiteScope, isApiantAiSite, siteName } from "@/lib/site";
 import type { Metadata } from "next";
 
 interface Props {
@@ -22,18 +25,27 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const fullSlug = slug.join("/");
   const supabase = createServerClient();
 
-  const { data } = await supabase
-    .from("documents")
-    .select("title, description")
-    .eq("slug", fullSlug)
-    .eq("status", "published")
-    .single();
+  const { data } = await scopeToSite(
+    supabase
+      .from("documents")
+      .select("title, description")
+      .eq("slug", fullSlug)
+      .eq("status", "published")
+  ).single();
 
-  if (!data) return { title: "Not Found | APIANT Docs" };
+  if (!data) return { title: `Not Found | ${siteName()}` };
 
   return {
-    title: `${data.title} | APIANT Docs`,
+    title: `${data.title} | ${siteName()}`,
     description: data.description || undefined,
+    ...(isApiantAiSite()
+      ? {
+          alternates: {
+            canonical: `/docs/${fullSlug}`,
+            types: { "text/markdown": `/docs/${fullSlug}.md` },
+          },
+        }
+      : {}),
   };
 }
 
@@ -55,12 +67,15 @@ export default async function DocPage({ params }: Props) {
   const fullSlug = slug.join("/");
   const supabase = createServerClient();
 
-  const { data: doc } = await supabase
-    .from("documents")
-    .select("*")
-    .eq("slug", fullSlug)
-    .eq("status", "published")
-    .single();
+  // Out-of-scope slugs (a classic page on the apiant.ai site, or an apiant.ai
+  // page on the classic site) are not found.
+  const { data: doc } = await scopeToSite(
+    supabase
+      .from("documents")
+      .select("*")
+      .eq("slug", fullSlug)
+      .eq("status", "published")
+  ).single();
 
   if (!doc) notFound();
 
@@ -70,19 +85,21 @@ export default async function DocPage({ params }: Props) {
   // database was slow).
   const [parentRes, allDocsRes, childDocsRes, srcEmbRes] = await Promise.all([
     doc.parent_id
-      ? supabase.from("documents").select("title, slug").eq("id", doc.parent_id).single()
+      ? scopeToSite(supabase.from("documents").select("title, slug").eq("id", doc.parent_id)).single()
       : Promise.resolve({ data: null }),
-    supabase
-      .from("documents")
-      .select("id, slug, title, doc_type, product, parent_id, sort_order")
-      .eq("status", "published")
-      .order("sort_order", { ascending: true }),
-    supabase
-      .from("documents")
-      .select("slug, title, description, doc_type")
-      .eq("parent_id", doc.id)
-      .eq("status", "published")
-      .order("sort_order", { ascending: true }),
+    scopeToSite(
+      supabase
+        .from("documents")
+        .select("id, slug, title, doc_type, product, parent_id, sort_order")
+        .eq("status", "published")
+    ).order("sort_order", { ascending: true }),
+    scopeToSite(
+      supabase
+        .from("documents")
+        .select("slug, title, description, doc_type")
+        .eq("parent_id", doc.id)
+        .eq("status", "published")
+    ).order("sort_order", { ascending: true }),
     supabase
       .from("doc_embeddings")
       .select("embedding")
@@ -156,14 +173,20 @@ export default async function DocPage({ params }: Props) {
         const slugs = ranked.map((r) => r.slug);
         const { data: tagged } = await supabase
           .from("documents")
-          .select("slug, tags")
+          .select("slug, tags, product")
           .in("slug", slugs);
-        const tagMap = new Map<string, string[]>((tagged || []).map((t: { slug: string; tags: string[] | null }) => [t.slug, t.tags || []]));
-        relatedDocs = ranked.map((r) => ({
-          slug: r.slug,
-          title: r.title,
-          tags: tagMap.get(r.slug) || [],
-        }));
+        const taggedRows = (tagged || []) as { slug: string; tags: string[] | null; product: string | null }[];
+        const tagMap = new Map<string, string[]>(taggedRows.map((t) => [t.slug, t.tags || []]));
+        // match_doc_embeddings filters by this doc's product; a NULL product
+        // matches every product, so drop anything outside the site here.
+        const inScope = new Set(taggedRows.filter((t) => inSiteScope(t.product)).map((t) => t.slug));
+        relatedDocs = ranked
+          .filter((r) => inScope.has(r.slug))
+          .map((r) => ({
+            slug: r.slug,
+            title: r.title,
+            tags: tagMap.get(r.slug) || [],
+          }));
       }
     }
   }
@@ -329,7 +352,7 @@ export default async function DocPage({ params }: Props) {
             }}>
               {doc.title}
             </h1>
-            <EditButton slug={fullSlug} />
+            {isApiantAiSite() ? <CopyPageButton slug={fullSlug} /> : <EditButton slug={fullSlug} />}
           </div>
           {doc.description && (
             <p style={{

@@ -2,6 +2,9 @@ import Link from "next/link";
 import { createServerClient } from "@/lib/supabase";
 import { TagList } from "@/components/tag-list";
 import { DOC_TYPE_LABELS, PRODUCT_LABELS, APP_FAMILIES } from "@/lib/constants";
+import { scopeToSite } from "@/lib/site-docs";
+import { isApiantAiSite } from "@/lib/site";
+import { ApiantAiDocsIndex } from "@/components/apiant-ai-docs-index";
 
 const QUICK_START_CARDS: { slug: string; title: string; description: string }[] = [
   {
@@ -38,14 +41,16 @@ export default async function DocsIndex({
   searchParams: Promise<{ product?: string; tag?: string }>;
 }) {
   const { product, tag } = await searchParams;
+  if (isApiantAiSite()) return <ApiantAiDocsIndex tag={tag} />;
   const supabase = createServerClient();
   const isFiltered = !!(product || tag);
 
-  let query = supabase
-    .from("documents")
-    .select("slug, title, description, doc_type, product, tags")
-    .eq("status", "published")
-    .order("sort_order", { ascending: true });
+  let query = scopeToSite(
+    supabase
+      .from("documents")
+      .select("slug, title, description, doc_type, product, tags")
+      .eq("status", "published")
+  ).order("sort_order", { ascending: true });
 
   if (product) query = query.eq("product", product);
   if (tag) query = query.contains("tags", [tag]);

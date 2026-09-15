@@ -1,6 +1,13 @@
 import { NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase";
-import { buildTree } from "@/lib/doc-tree";
+import { buildTree, type FlatDoc } from "@/lib/doc-tree";
+import { siteProduct } from "@/lib/site";
+
+// apiant-ai zone: only its own pages. Classic mode keeps the full tree.
+function siteRows(rows: FlatDoc[]): FlatDoc[] {
+  const scoped = siteProduct();
+  return scoped ? rows.filter((r) => r.product === scoped) : rows;
+}
 
 export const revalidate = 60;
 
@@ -22,8 +29,8 @@ export async function GET() {
       return NextResponse.json({ error: fallbackError.message }, { status: 500 });
     }
 
-    return NextResponse.json({ data: buildTree(fallbackData || []) });
+    return NextResponse.json({ data: buildTree(siteRows(fallbackData || [])) });
   }
 
-  return NextResponse.json({ data: buildTree(data || []) });
+  return NextResponse.json({ data: buildTree(siteRows(data || [])) });
 }

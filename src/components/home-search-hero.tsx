@@ -3,6 +3,7 @@
 import { useEffect, useCallback, useState } from "react";
 import { useRouter } from "next/navigation";
 import { PRODUCT_LABELS, DOC_TYPE_LABELS } from "@/lib/constants";
+import { apiPath } from "@/lib/site";
 
 interface SearchResult {
   id: string;
@@ -65,7 +66,7 @@ export function HomeSearchHero() {
     const timer = setTimeout(() => {
       const controller = new AbortController();
 
-      fetch(`/api/search?q=${encodeURIComponent(query.trim())}&limit=10`, {
+      fetch(`${apiPath("/search")}?q=${encodeURIComponent(query.trim())}&limit=10`, {
         signal: controller.signal,
       })
         .then((res) => {

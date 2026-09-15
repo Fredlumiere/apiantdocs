@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { PRODUCT_LABELS } from "@/lib/constants";
+import { isApiantAiSite, siteOrigin } from "@/lib/site";
 
 interface BreadcrumbItem {
   label: string;
@@ -15,12 +16,15 @@ interface BreadcrumbsProps {
 }
 
 export function Breadcrumbs({ slug, title, product, parentTitle, parentSlug }: BreadcrumbsProps) {
+  const apiantAi = isApiantAiSite();
   const crumbs: BreadcrumbItem[] = [
-    { label: "Home", href: "/" },
+    // On apiant.ai the site root is the marketing site, a different zone.
+    apiantAi ? { label: "APIANT.ai", href: siteOrigin() } : { label: "Home", href: "/" },
     { label: "Docs", href: "/docs" },
   ];
 
-  if (product) {
+  // The apiant.ai site has one product, so a product crumb adds nothing.
+  if (product && !apiantAi) {
     crumbs.push({
       label: PRODUCT_LABELS[product] || product,
       href: `/docs?product=${product}`,
@@ -56,7 +60,11 @@ export function Breadcrumbs({ slug, title, product, parentTitle, parentSlug }: B
                 /
               </span>
             )}
-            {crumb.href ? (
+            {crumb.href && /^https?:\/\//.test(crumb.href) ? (
+              <a href={crumb.href} className="breadcrumb-link">
+                {crumb.label}
+              </a>
+            ) : crumb.href ? (
               <Link href={crumb.href} className="breadcrumb-link">
                 {crumb.label}
               </Link>

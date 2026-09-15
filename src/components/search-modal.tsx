@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { PRODUCT_LABELS, DOC_TYPE_LABELS } from "@/lib/constants";
+import { apiPath } from "@/lib/site";
 
 interface SearchResult {
   id: string;
@@ -86,7 +87,7 @@ export function SearchModal() {
       const controller = new AbortController();
       abortRef.current = controller;
 
-      fetch(`/api/search?q=${encodeURIComponent(query.trim())}&limit=10`, {
+      fetch(`${apiPath("/search")}?q=${encodeURIComponent(query.trim())}&limit=10`, {
         signal: controller.signal,
       })
         .then((res) => {

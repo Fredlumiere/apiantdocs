@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import ReactMarkdown from "react-markdown";
 import Link from "next/link";
+import { apiPath } from "@/lib/site";
 
 interface Citation {
   index: number;
@@ -69,7 +70,7 @@ export function ChatPanel() {
     setRateLimited(null);
 
     try {
-      const res = await fetch("/api/chat", {
+      const res = await fetch(apiPath("/chat"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ question }),

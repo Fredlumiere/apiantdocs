@@ -650,6 +650,7 @@ Tags will use prefixed categories: `src:mindbody`, `dst:hubspot`, `audience:buil
 | `20260404120000_api_keys_user_id.sql` | 2026-04-04 12:00 | Adds `user_id` column to `api_keys` (FK -> auth.users, ON DELETE CASCADE). Index + RLS policies for user-owned key management. |
 | `20260404150000_search_rpc.sql` | 2026-04-04 15:00 | Creates `search_documents()` RPC (full-text search with ranking + snippets) and `get_doc_tree()` RPC (navigation tree). |
 | `20260404170000_add_tags.sql` | 2026-04-04 17:00 | Adds `tags text[] DEFAULT '{}'` column to documents. GIN index for fast tag queries. |
+| `20260915120000_add_apiant_ai_product.sql` | 2026-09-15 12:00 | Replaces `documents_product_check` to also allow `apiant-ai`. Keeps the live values (`api-apps`, `platform`, `platform-ui`, `mcp`, `general`, NULL), which had drifted from the initial schema without a migration. |
 
 ---
 
@@ -666,6 +667,7 @@ Tags will use prefixed categories: `src:mindbody`, `dst:hubspot`, `audience:buil
 | `VERCEL_URL` | Auto (Vercel) | sidebar.tsx | Auto-set by Vercel deployment |
 | `APIANTDOCS_API_URL` | Optional (MCP) | MCP server | API base URL (default: https://apiantdocs.vercel.app) |
 | `APIANTDOCS_API_KEY` | Optional (MCP) | MCP server | API key for MCP write operations |
+| `DOCS_SITE` | Optional (build time) | next.config.ts, `src/lib/site.ts` | `apiant-ai` builds the apiant.ai docs zone (see "Site modes" below). Unset = the classic info.apiant.com site. |
 
 ---
 
@@ -688,6 +690,26 @@ Tags will use prefixed categories: `src:mindbody`, `dst:hubspot`, `audience:buil
 ### Scripts
 - `npx tsx scripts/migrate-from-export.ts` — One-time Archbee MDX migration
 - `npx tsx scripts/fix-images.ts` — Re-download failed image migrations
+- `npx tsx scripts/import-apiant-ai-content.ts --dir=<folder> --env=<env file> [--commit]` - Import Markdown pages with frontmatter (title, slug, parent_slug, sort_order, doc_type, description) as product `apiant-ai`. Dry run unless `--commit`; new pages land as drafts unless `--status=published`; a slug owned by another product is refused unless listed in `--claim=<slug,...>`, which updates that row in place to `apiant-ai` (it leaves info.apiant.com); refuses the production project unless `--allow-prod`. Run `scripts/embed-all-docs.ts` afterwards.
+
+### Site modes (classic and apiant.ai)
+
+One codebase, two Vercel projects. `DOCS_SITE` is read at build time.
+
+| | Classic (unset) | `DOCS_SITE=apiant-ai` |
+|---|---|---|
+| Vercel project | `apiantdocs` (info.apiant.com) | `apiant-ai-docs`, reached at https://apiant.ai/docs via rewrites in the apiant.ai project's `vercel.json` |
+| Pages, sidebar, prev/next, search, chat, llms.txt | every product except `apiant-ai` | only product `apiant-ai`; other slugs 404 |
+| REST API reads (`/api/docs*`) | every product (writer agents read back any page) | only `apiant-ai` |
+| Assets | `/_next/*` | `/docs/_next/*` (`assetPrefix`) |
+| Browser API calls | `/api/search`, `/api/chat` | `/docs/api/search`, `/docs/api/chat` (rewritten to `/api/*`; `apiPath()` in `src/lib/site.ts`) |
+| Archbee redirects | on | off; `/` redirects to `/docs` |
+| Header | APIANT logo, sign-in, edit | "APIANT.ai Docs", links to apiant.ai and app.apiant.ai, Copy page / View .md |
+| `/docs/sitemap.xml` | 404 | sitemap of in-scope pages |
+
+Both modes serve `/docs/llms.txt` and `/docs/<slug>.md` (raw Markdown, rewritten in `middleware.ts` to `/api/markdown/<slug>`).
+
+Do not add `basePath: "/docs"`: pages already live under `/docs`, so it would produce `/docs/docs/<slug>`. Links to another zone (apiant.ai, app.apiant.ai) must be plain `<a>`, not `<Link>`.
 
 ---
 

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase";
 import { corsHeaders } from "@/lib/cors";
+import { effectiveProduct } from "@/lib/site";
+import { rowInScopeForRequest, scopeForRequest } from "@/lib/site-docs";
 
 export async function OPTIONS() {
   return corsHeaders(new NextResponse(null, { status: 204 }));
@@ -71,10 +73,20 @@ async function semanticSearch(
 
     if (error || !data) return null;
 
+    // Site scope. match_doc_embeddings returns no product column, so resolve
+    // which matched documents belong to this site with one scoped lookup.
+    const rows = data as Array<{ content: string; document_id: string; slug: string; title: string; similarity: number }>;
+    const matchedIds = [...new Set(rows.map((r) => r.document_id))];
+    const { data: scopedRows } = matchedIds.length
+      ? await scopeForRequest(supabase.from("documents").select("id").in("id", matchedIds), product)
+      : { data: [] };
+    const inScopeIds = new Set(((scopedRows || []) as { id: string }[]).map((r) => r.id));
+
     // Deduplicate by document_id (multiple chunks can match the same doc)
     const seen = new Set<string>();
     const deduped: SemanticResult[] = [];
-    for (const row of data as Array<{ content: string; document_id: string; slug: string; title: string; similarity: number }>) {
+    for (const row of rows) {
+      if (!inScopeIds.has(row.document_id)) continue;
       if (!seen.has(row.document_id)) {
         seen.add(row.document_id);
         deduped.push({
@@ -164,7 +176,8 @@ function mergeResults(
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const q = searchParams.get("q");
-  const product = searchParams.get("product");
+  // apiant-ai site: always product 'apiant-ai', whatever ?product= says.
+  const product = effectiveProduct(searchParams.get("product"));
   const limit = Math.min(parseInt(searchParams.get("limit") || "10"), 50);
   const mode = searchParams.get("mode") || (process.env.VOYAGE_API_KEY ? "hybrid" : "keyword");
 
@@ -190,17 +203,19 @@ export async function GET(request: NextRequest) {
     if (error) {
       // Fallback to simple ilike if RPC fails (e.g., invalid websearch syntax)
       const safeQ = sanitized.replace(/'/g, "''");
-      const { data: fallbackData } = await supabase
-        .from("documents")
-        .select("id, slug, title, description, doc_type, product")
-        .eq("status", "published")
-        .or(`title.ilike.%${safeQ}%,description.ilike.%${safeQ}%`)
-        .limit(limit);
+      const { data: fallbackData } = await scopeForRequest(
+        supabase
+          .from("documents")
+          .select("id, slug, title, description, doc_type, product")
+          .eq("status", "published")
+          .or(`title.ilike.%${safeQ}%,description.ilike.%${safeQ}%`),
+        product
+      ).limit(limit);
 
       return (fallbackData || []).map((d) => ({ ...d, snippet: null, rank: 0 }));
     }
 
-    return data || [];
+    return ((data || []) as Array<{ product: string | null }>).filter((r) => rowInScopeForRequest(r.product, product)) as typeof data;
   };
 
   // Hybrid mode: run keyword + semantic in parallel, merge results

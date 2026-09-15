@@ -5,6 +5,7 @@ export const PRODUCT_LABELS: Record<string, string> = {
   mcp: "MCP",
   general: "General",
   "getting-started": "Getting Started",
+  "apiant-ai": "APIANT.ai",
 };
 
 export const DOC_TYPE_LABELS: Record<string, string> = {

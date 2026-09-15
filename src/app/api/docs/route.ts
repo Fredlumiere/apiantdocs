@@ -3,6 +3,7 @@ import { createServerClient } from "@/lib/supabase";
 import { requireWriteAccess } from "@/lib/api-auth";
 import { embedDocument } from "@/lib/embeddings";
 import { corsHeaders } from "@/lib/cors";
+import { effectiveProduct } from "@/lib/site";
 import { resolveParent, nextSortOrder, unknownFieldWarnings } from "@/lib/doc-hierarchy";
 
 const CREATE_ALLOWED_FIELDS = [
@@ -30,7 +31,9 @@ export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
 
   const doc_type = searchParams.get("type");
-  const product = searchParams.get("product");
+  // The REST API is the writers' interface on the classic site, so classic
+  // mode lists every product. The apiant-ai zone only lists its own pages.
+  const product = effectiveProduct(searchParams.get("product"));
   const tag = searchParams.get("tag");
   const status = searchParams.get("status") || "published";
   const limit = Math.min(parseInt(searchParams.get("limit") || "50"), 500);

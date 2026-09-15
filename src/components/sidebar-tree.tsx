@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { PRODUCT_LABELS } from "@/lib/constants";
+import { isApiantAiSite, siteName } from "@/lib/site";
 
 export interface TreeNode {
   id: string;
@@ -188,11 +189,15 @@ export function SidebarTree({ tree }: SidebarTreeProps) {
     ...Object.entries(grouped).filter(([k]) => !PRODUCT_ORDER.includes(k)),
   ];
 
+  // The apiant.ai site holds a single product, so a group heading would only
+  // repeat the site name above it.
+  const showGroupHeadings = !isApiantAiSite();
+
   return (
     <nav>
       {orderedGroups.map(([product, nodes]) => (
         <div key={product} style={{ marginBottom: "var(--space-6)" }}>
-          <h3 style={{
+          {showGroupHeadings && <h3 style={{
             fontSize: "11px",
             fontWeight: 600,
             textTransform: "uppercase",
@@ -202,7 +207,7 @@ export function SidebarTree({ tree }: SidebarTreeProps) {
             padding: "0 var(--space-2)",
           }}>
             {PRODUCT_LABELS[product] || product}
-          </h3>
+          </h3>}
           <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
             {nodes.map((node) => (
               <TreeItem
@@ -286,7 +291,7 @@ export function MobileSidebarToggle({ tree }: { tree: TreeNode[] }) {
               marginBottom: "var(--space-4)",
             }}>
               <Link
-                href="/"
+                href={isApiantAiSite() ? "/docs" : "/"}
                 style={{
                   fontSize: "14px",
                   fontWeight: 700,
@@ -294,7 +299,7 @@ export function MobileSidebarToggle({ tree }: { tree: TreeNode[] }) {
                   textDecoration: "none",
                 }}
               >
-                APIANT Docs
+                {siteName()}
               </Link>
               <button
                 onClick={() => setIsOpen(false)}

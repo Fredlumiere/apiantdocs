@@ -1,4 +1,16 @@
 import Link from "next/link";
+import { isApiantAiSite, siteOrigin } from "@/lib/site";
+
+const goHomeStyle: React.CSSProperties = {
+  padding: "var(--space-2) var(--space-6)",
+  borderRadius: "var(--radius-md)",
+  border: "1px solid var(--border-secondary)",
+  background: "var(--bg-surface)",
+  color: "var(--text-secondary)",
+  textDecoration: "none",
+  fontSize: "14px",
+  fontWeight: 500,
+};
 
 export default function DocsNotFound() {
   return (
@@ -54,21 +66,15 @@ export default function DocsNotFound() {
         >
           Browse all docs
         </Link>
-        <Link
-          href="/"
-          style={{
-            padding: "var(--space-2) var(--space-6)",
-            borderRadius: "var(--radius-md)",
-            border: "1px solid var(--border-secondary)",
-            background: "var(--bg-surface)",
-            color: "var(--text-secondary)",
-            textDecoration: "none",
-            fontSize: "14px",
-            fontWeight: 500,
-          }}
-        >
-          Go home
-        </Link>
+        {isApiantAiSite() ? (
+          <a href={siteOrigin()} style={goHomeStyle}>
+            Go home
+          </a>
+        ) : (
+          <Link href="/" style={goHomeStyle}>
+            Go home
+          </Link>
+        )}
       </div>
     </main>
   );

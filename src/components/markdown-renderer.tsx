@@ -8,6 +8,7 @@ import rehypeAutolinkHeadings from "rehype-autolink-headings";
 import rehypeRaw from "rehype-raw";
 import { CodeBlock } from "@/components/code-block";
 import { ImageFrame } from "@/components/image-lightbox";
+import { contentHref } from "@/lib/site";
 import type { ComponentPropsWithoutRef } from "react";
 
 /** Sanitize iframe src to only allow known video providers */
@@ -122,7 +123,7 @@ export function MarkdownRenderer({ content }: { content: string }) {
             const isExternal = href && (href.startsWith("http") || href.startsWith("//")) && !href.includes("apiantdocs");
             return (
               <a
-                href={href}
+                href={contentHref(href)}
                 {...(isExternal ? { target: "_blank", rel: "noopener noreferrer" } : {})}
                 {...props}
               >
@@ -141,7 +142,7 @@ export function MarkdownRenderer({ content }: { content: string }) {
               if (match) w = match[1].trim();
             }
             if (typeof width === "string" || typeof width === "number") w = String(width);
-            return <ImageFrame src={typeof src === "string" ? src : undefined} alt={typeof alt === "string" ? alt : undefined} width={w} />;
+            return <ImageFrame src={typeof src === "string" ? contentHref(src) : undefined} alt={typeof alt === "string" ? alt : undefined} width={w} />;
           },
           table: ({ children, ...rest }) => (
             <div style={{ overflowX: "auto", marginBottom: "var(--space-4)" }}>
@@ -165,7 +166,7 @@ export function MarkdownRenderer({ content }: { content: string }) {
               background: "var(--bg-tertiary)",
             }}>
               <video
-                src={typeof src === "string" ? src : undefined}
+                src={typeof src === "string" ? contentHref(src) : undefined}
                 controls
                 style={{ width: "100%", display: "block" }}
                 {...props}

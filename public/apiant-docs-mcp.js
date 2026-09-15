@@ -30120,7 +30120,8 @@ var StdioServerTransport = class {
 
 // packages/mcp-server/src/index.ts
 var API_BASE = process.env.APIANTDOCS_API_URL || "https://info.apiant.com";
-var MCP_VERSION = "0.3.0";
+var MCP_VERSION = "0.4.0";
+var PRODUCTS = ["api-apps", "platform", "platform-ui", "mcp", "general", "apiant-ai"];
 function getCliApiKey() {
   const args = process.argv.slice(2);
   const idx = args.indexOf("--api-key");
@@ -30280,7 +30281,7 @@ server.tool(
   "List documentation pages with optional filters",
   {
     type: external_exports3.string().optional().describe("Filter by doc type: guide, api-ref, tutorial, changelog"),
-    product: external_exports3.string().optional().describe("Filter by product: api-apps, platform, mcp"),
+    product: external_exports3.string().optional().describe(`Filter by product: ${PRODUCTS.join(", ")}`),
     limit: external_exports3.number().optional().describe("Max results (default 50)")
   },
   async ({ type, product, limit }) => {
@@ -30328,7 +30329,7 @@ server.tool(
     doc_body: external_exports3.string().describe("Document body in Markdown"),
     doc_type: external_exports3.enum(["guide", "api-ref", "tutorial", "changelog"]).describe("Document type"),
     description: external_exports3.string().optional().describe("Short description"),
-    product: external_exports3.enum(["api-apps", "platform", "mcp"]).optional().describe("Product category"),
+    product: external_exports3.enum(PRODUCTS).optional().describe(`Product category. Use "apiant-ai" for pages published on apiant.ai/docs; all other products appear on info.apiant.com. A page nested under a parent inherits the parent's product.`),
     status: external_exports3.enum(["draft", "published"]).optional().describe("Publication status (default: draft)"),
     parent_id: external_exports3.string().optional().describe("Parent document id (UUID) to nest this page under in the sidebar"),
     parent_slug: external_exports3.string().optional().describe("Parent document slug \u2014 resolved to an id server-side. Ignored if parent_id is given."),

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { ChatPanel } from "@/components/chat-panel";
 import { AuthProvider } from "@/components/auth-provider";
+import { isApiantAiSite } from "@/lib/site";
 import "./globals.css";
 import "@/styles/gallery.css";
 
@@ -17,12 +18,20 @@ const geistMono = Geist_Mono({
 
 // Shared APIANT GA4 property. apiant.com reports into this same property, so the
 // docs subdomain rolls up with the marketing site instead of a separate one.
-const GA_MEASUREMENT_ID = "G-G902ZQ3PZZ";
+// The apiant.ai docs zone reports into apiant.ai's own property (the one
+// apiant.ai's pages load), keeping the same consent-denied bootstrap below.
+const GA_MEASUREMENT_ID = isApiantAiSite() ? "G-H3NKMZB63S" : "G-G902ZQ3PZZ";
 
-export const metadata: Metadata = {
-  title: "APIANT Docs",
-  description: "Documentation for APIANT — the AI-first integration platform",
-};
+export const metadata: Metadata = isApiantAiSite()
+  ? {
+      metadataBase: new URL("https://apiant.ai"),
+      title: "APIANT.ai Docs",
+      description: "Documentation for APIANT.ai, the AI-first integration platform",
+    }
+  : {
+      title: "APIANT Docs",
+      description: "Documentation for APIANT — the AI-first integration platform",
+    };
 
 export default function RootLayout({
   children,

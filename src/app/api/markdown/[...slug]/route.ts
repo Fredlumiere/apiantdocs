@@ -11,7 +11,7 @@ export async function generateStaticParams(): Promise<{ slug: string[] }[]> {
   return [];
 }
 
-// GET /api/markdown/<slug> — raw Markdown of one published page in this
+// GET /api/markdown/<slug>: raw Markdown of one published page in this
 // site's scope. Public URL: /docs/<slug>.md (rewritten in middleware.ts).
 export async function GET(
   _request: Request,

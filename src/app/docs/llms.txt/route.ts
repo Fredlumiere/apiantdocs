@@ -4,7 +4,7 @@ import { isApiantAiSite, siteName, siteOrigin } from "@/lib/site";
 
 export const revalidate = 60;
 
-// GET /docs/llms.txt — index of every published page in this site's scope,
+// GET /docs/llms.txt: index of every published page in this site's scope,
 // in sidebar order, linking to each page's Markdown export.
 export async function GET() {
   const { docs, tree } = await fetchSiteDocs();

@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient as createSSRServerClient } from "@supabase/ssr";
+import { markdownSlugFromPath } from "@/lib/markdown-export";
 
 /**
  * Middleware:
@@ -9,6 +10,15 @@ import { createServerClient as createSSRServerClient } from "@supabase/ssr";
  * - Does NOT protect /docs, /api/docs (public read), /login, /signup, /auth/*
  */
 export async function middleware(request: NextRequest) {
+  // /docs/<slug>.md serves the raw Markdown of a page (llms.txt links here).
+  // Rewritten before the auth refresh: it is public and needs no session.
+  const markdownSlug = markdownSlugFromPath(request.nextUrl.pathname);
+  if (markdownSlug) {
+    const url = request.nextUrl.clone();
+    url.pathname = `/api/markdown/${markdownSlug}`;
+    return NextResponse.rewrite(url);
+  }
+
   let response = NextResponse.next({
     request: { headers: request.headers },
   });

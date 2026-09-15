@@ -5,7 +5,12 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 
 const API_BASE = process.env.APIANTDOCS_API_URL || "https://info.apiant.com";
-const MCP_VERSION = "0.3.0";
+const MCP_VERSION = "0.4.0";
+
+// Product values the documents table accepts (documents_product_check).
+// "apiant-ai" pages are served only on https://apiant.ai/docs; every other
+// product is served on the classic site, info.apiant.com.
+const PRODUCTS = ["api-apps", "platform", "platform-ui", "mcp", "general", "apiant-ai"] as const;
 
 // Parse --api-key from CLI args
 function getCliApiKey(): string {
@@ -187,7 +192,7 @@ server.tool(
   "List documentation pages with optional filters",
   {
     type: z.string().optional().describe("Filter by doc type: guide, api-ref, tutorial, changelog"),
-    product: z.string().optional().describe("Filter by product: api-apps, platform, mcp"),
+    product: z.string().optional().describe(`Filter by product: ${PRODUCTS.join(", ")}`),
     limit: z.number().optional().describe("Max results (default 50)"),
   },
   async ({ type, product, limit }) => {
@@ -243,7 +248,7 @@ server.tool(
     doc_body: z.string().describe("Document body in Markdown"),
     doc_type: z.enum(["guide", "api-ref", "tutorial", "changelog"]).describe("Document type"),
     description: z.string().optional().describe("Short description"),
-    product: z.enum(["api-apps", "platform", "mcp"]).optional().describe("Product category"),
+    product: z.enum(PRODUCTS).optional().describe("Product category. Use \"apiant-ai\" for pages published on apiant.ai/docs; all other products appear on info.apiant.com. A page nested under a parent inherits the parent's product."),
     status: z.enum(["draft", "published"]).optional().describe("Publication status (default: draft)"),
     parent_id: z.string().optional().describe("Parent document id (UUID) to nest this page under in the sidebar"),
     parent_slug: z.string().optional().describe("Parent document slug — resolved to an id server-side. Ignored if parent_id is given."),

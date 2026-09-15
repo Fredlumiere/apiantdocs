@@ -41,7 +41,17 @@ export function sectionForSlug(sections: DocSection[], slug: string): DocSection
   return sections.find((s) => s.slugs.includes(slug)) ?? null;
 }
 
-/** Page slug from a pathname: "/docs/automations/triggers" -> "automations/triggers". */
+/**
+ * Page slug from a pathname: "/docs/automations/triggers" -> "automations/triggers".
+ * Decoded, because an on-demand ISR render on Vercel reports a catch-all
+ * segment as one encoded segment ("/docs/automations%2Ftriggers").
+ */
 export function slugFromPathname(pathname: string | null): string {
-  return (pathname || "").replace(/^\/docs\/?/, "").replace(/\/$/, "");
+  let path = pathname || "";
+  try {
+    path = decodeURIComponent(path);
+  } catch {
+    // Malformed escape: match on the raw path.
+  }
+  return path.replace(/^\/docs\/?/, "").replace(/\/$/, "");
 }

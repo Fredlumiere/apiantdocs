@@ -116,5 +116,7 @@ describe("doc sections", () => {
     expect(sectionForSlug(sections, "nope")).toBeNull();
     expect(slugFromPathname("/docs/automations/triggers/")).toBe("automations/triggers");
     expect(slugFromPathname("/docs")).toBe("");
+    expect(slugFromPathname("/docs/automations%2Ftriggers%2Fpolling")).toBe("automations/triggers/polling");
+    expect(slugFromPathname("/docs/bad%E0%A4%A")).toBe("bad%E0%A4%A");
   });
 });

@@ -4,6 +4,7 @@ import { requireWriteAccess, validateSession } from "@/lib/api-auth";
 import { embedDocument } from "@/lib/embeddings";
 import { corsHeaders } from "@/lib/cors";
 import { resolveParent, unknownFieldWarnings } from "@/lib/doc-hierarchy";
+import { resolveSlugAction } from "@/lib/doc-slug";
 import { siteProduct } from "@/lib/site";
 
 const UPDATE_ALLOWED_FIELDS = [
@@ -26,15 +27,6 @@ export async function OPTIONS() {
   return corsHeaders(new NextResponse(null, { status: 204 }));
 }
 
-function extractSlug(slugParts: string[]): { slug: string; action: string | null } {
-  const last = slugParts[slugParts.length - 1];
-  // If last segment is a known action, treat it as an action
-  if (last === "embed" || last === "versions") {
-    return { slug: slugParts.slice(0, -1).join("/"), action: last };
-  }
-  return { slug: slugParts.join("/"), action: null };
-}
-
 // GET /api/docs/[...slug] — get a single document or versions
 // Public: published only. Authenticated: any status (add ?any_status=true)
 export async function GET(
@@ -42,8 +34,8 @@ export async function GET(
   { params }: { params: Promise<{ slug: string[] }> }
 ) {
   const { slug: slugParts } = await params;
-  const { slug, action } = extractSlug(slugParts);
   const supabase = createServerClient();
+  const { slug, action } = await resolveSlugAction(supabase, slugParts);
 
   // GET /api/docs/[slug]/versions — version history (requires auth)
   if (action === "versions") {
@@ -115,7 +107,8 @@ export async function POST(
   { params }: { params: Promise<{ slug: string[] }> }
 ) {
   const { slug: slugParts } = await params;
-  const { slug, action } = extractSlug(slugParts);
+  const supabase = createServerClient();
+  const { slug, action } = await resolveSlugAction(supabase, slugParts);
 
   if (action === "embed") {
     const auth = await requireWriteAccess(request);
@@ -123,7 +116,6 @@ export async function POST(
       return NextResponse.json({ error: auth.error }, { status: 401 });
     }
 
-    const supabase = createServerClient();
     const { data: doc } = await supabase
       .from("documents")
       .select("id")
@@ -156,9 +148,9 @@ export async function PATCH(
   }
 
   const { slug: slugParts } = await params;
-  const { slug } = extractSlug(slugParts);
   const body = await request.json();
   const supabase = createServerClient();
+  const { slug } = await resolveSlugAction(supabase, slugParts);
 
   const { data: existing } = await supabase
     .from("documents")
@@ -274,8 +266,8 @@ export async function DELETE(
   }
 
   const { slug: slugParts } = await params;
-  const { slug } = extractSlug(slugParts);
   const supabase = createServerClient();
+  const { slug } = await resolveSlugAction(supabase, slugParts);
 
   const { data, error } = await supabase
     .from("documents")

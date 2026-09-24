@@ -32,7 +32,8 @@ export const metadata: Metadata = isApiantAiSite()
   ? {
       metadataBase: new URL("https://apiant.ai"),
       title: "APIANT.ai Docs",
-      description: "Documentation for APIANT.ai, the AI-first integration platform",
+      description:
+        "APIANT.ai docs: build automations with the assistant or Claude over MCP, connect apps, handle triggers, runs, limits and billing.",
       icons: APIANT_AI_ICONS,
     }
   : {

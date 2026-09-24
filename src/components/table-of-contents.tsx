@@ -62,16 +62,18 @@ export function TableOfContents({ headings }: TableOfContentsProps) {
         display: "none", // hidden by default, shown via media query
       }}
     >
-      <h4 style={{
+      {/* A label, not a heading: an <h4> here skipped a level after every page's last <h2>. */}
+      <p style={{
         fontSize: "11px",
         fontWeight: 600,
         textTransform: "uppercase",
         letterSpacing: "0.05em",
         color: "var(--text-tertiary)",
+        marginTop: 0,
         marginBottom: "var(--space-3)",
       }}>
         On this page
-      </h4>
+      </p>
       <nav aria-label="Table of contents">
         <ul style={{ listStyle: "none", padding: 0, margin: 0 }}>
           {headings.map((heading) => (

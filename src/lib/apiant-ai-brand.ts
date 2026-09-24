@@ -88,8 +88,11 @@ const SITE_JS_CSS =
   ".sm-links a[aria-current]{color:#f7f8f8;border-bottom-color:#f8a434}" +
   ".sm-links .sm-signin{margin-left:auto}" +
   ".sm-actions{display:flex;align-items:center;gap:12px;flex:none}" +
-  ".sm-start{display:inline-flex;align-items:center;justify-content:center;height:44px;padding:0 16px;border-radius:8px;background:#f7f8f8;color:#0a0a0a;font-weight:700;font-size:14px;text-decoration:none;white-space:nowrap}" +
-  ".sm-start:hover{background:#e6e7e8;color:#0a0a0a}" +
+  // The amber pill: apiant.ai site.css `.btn.compact` (site.js draws the
+  // menu's Start free with class="btn compact sm-start"). Keep in step with it.
+  ".sm-start{flex:none;display:inline-flex;align-items:center;justify-content:center;gap:.5em;height:44px;padding:0 18px;border-radius:999px;border:1px solid transparent;font-family:var(--aai-display);font-weight:600;font-size:14px;line-height:1;white-space:nowrap;text-decoration:none;background:var(--aai-grad);color:var(--aai-on-accent);box-shadow:0 10px 30px -12px rgba(248,164,52,.55);transition:filter .15s}" +
+  ".sm-start:hover{filter:brightness(1.06);color:var(--aai-on-accent)}" +
+  ".sm-start:focus-visible{outline:2px solid var(--aai-v2);outline-offset:2px}" +
   ".sm-btn{display:none}" +
   "@media (max-width:1024px){.sm-bar{gap:24px}.sm-links ul{gap:18px}}" +
   "@media (max-width:720px){" +
@@ -105,7 +108,6 @@ const SITE_JS_CSS =
   ".sm-links a{min-height:56px;font-size:17px;color:#f7f8f8;border-bottom:0;padding-top:0}" +
   ".sm-links a[aria-current]{color:#f8a434}" +
   ".sm-links .sm-signin{margin-left:0}" +
-  ".sm-start{padding:0 14px}" +
   '.sm-btn{display:inline-flex;align-items:center;justify-content:center;width:44px;height:44px;border:1px solid rgba(255,255,255,.12);border-radius:8px;background:transparent;color:#f7f8f8;font-family:"JetBrains Mono",ui-monospace,Menlo,monospace;font-size:12px;cursor:pointer}' +
   "}" +
   '.sf{position:relative;z-index:3;width:min(92vw,1120px);margin:64px auto 0;padding:32px 24px 40px;text-align:left;border-top:1px solid rgba(255,255,255,.06);font-family:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;font-size:14px;line-height:1.5;color:#8b908d;background:transparent}' +
